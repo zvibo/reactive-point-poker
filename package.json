@@ -1,0 +1,31 @@
+{
+  "name": "pointkiva",
+  "version": "0.0.0",
+  "description": "Planning Poker app",
+  "main": "bin/www",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "@emuvente",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "babel": "^6.5.2",
+    "babel-preset-es2015": "^6.5.0",
+    "babel-register": "^6.5.2",
+    "compression": "^1.6.1",
+    "ejs": "^2.4.1",
+    "express": "^4.13.4"
+  },
+  "devDependencies": {
+    "babel-core": "^6.5.2",
+    "babel-loader": "^6.2.3",
+    "babel-polyfill": "^6.5.0",
+    "domchanger": "^1.0.2",
+    "firebase": "^2.4.1",
+    "gulp": "^3.9.1",
+    "gulp-livereload": "^3.8.1",
+    "gulp-nodemon": "^2.0.6",
+    "webpack": "^1.12.13",
+    "webpack-stream": "^3.1.0"
+  }
+}
