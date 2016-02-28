@@ -2,13 +2,21 @@
 
 'use strict';
 
-//require("babel-polyfill");
+require("babel-polyfill");
 
-const domChanger = require('domchanger');
-const Firebase = require('firebase');
-const Kefir = require('kefir');
+const _ = require('lodash')
+	, domChanger = require('domchanger')
+	, ls = require('local-storage')
+	, Firebase = require('firebase')
+	, Kefir = require('kefir')
+	, TextInput = require('./TextInput')
+	;
 
 const data = window.data || {};
+
+const snaps = function(ref) {
+	return Kefir.fromEvents(ref, 'value');
+};
 
 // Defining the component
 function Echo() {
@@ -33,28 +41,30 @@ if(data.room) {
 			db.authAnonymously();
 			return;
 		}
-		// const topicRef = new Firebase(`${data.db_url}/rooms/${data.room}/topic`);
-		// const topicStream = Kefir.fromEvents(topicRef, 'value');
-		// topicStream.onValue(snap => instance.update(snap.val()));
-		const myUserRef = new Firebase(`${data.db_url}/${data.room}/users/${auth.uid}`);
-		myUserRef.onDisconnect().remove();
-		myUserRef.set({vote:'0',name:'Josh'});
 
-		const usersRef = new Firebase(`${data.db_url}/${data.room}/users`);
-		const userStream = Kefir.fromEvents(usersRef, 'value').map(snap => {
-			let obj = snap.val();
-			let users = [];
-			for (let u in obj) {
-				users.push(obj[u]);
-			}
-			return users;
-		});
-		userStream.onValue(users => {
-			console.log(users);
+		const room = db.child(data.room);
+		const topic = room.child('topic');
+
+		const users = snaps(room.child('users')).map(snap => _.values(snap.val()));
+		users.onValue(users => {
 			instance.update(users);
 		});
+
+		const me = room.child(`users/${auth.uid}`);
+		me.onDisconnect().remove();
+		me.set({vote:'0'});
+
+		const myName = me.child('name');
+		const nameKey = `${data.room}/name`;
+		const nameView = new TextInput(document.body, snaps(myName).map(snap => snap.val()));
+		Kefir.merge([
+			Kefir.constant(''),
+			Kefir.merge([Kefir.constant(ls(nameKey)), Kefir.fromEvents(ls, nameKey)]),
+			nameView.ostream
+		]).onValue(name => myName.set(name));
+		nameView.ostream.onValue(name => ls(nameKey, name));
 	});
 }
 else {
-	instance.update('no room');
+	instance.update([]);
 }
