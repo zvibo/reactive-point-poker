@@ -59,10 +59,10 @@ if(data.room) {
 		const nameView = new TextInput(document.body, snaps(myName).map(snap => snap.val()));
 		Kefir.merge([
 			Kefir.constant(''),
-			Kefir.constant(ls(nameKey)).filter(x => !!x),
+			Kefir.constant(ls(nameKey)),
 			Kefir.fromEvents(ls, nameKey),
 			nameView.ostream
-		]).onValue(name => myName.set(name));
+		]).filter(x => !!x).onValue(name => myName.set(name));
 		nameView.ostream.onValue(name => ls(nameKey, name));
 	});
 }
