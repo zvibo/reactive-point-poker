@@ -111,7 +111,9 @@
 				var nameView = new TextInput(document.body, snaps(myName).map(function (snap) {
 					return snap.val();
 				}));
-				Kefir.merge([Kefir.constant(''), Kefir.merge([Kefir.constant(ls(nameKey)), Kefir.fromEvents(ls, nameKey)]), nameView.ostream]).onValue(function (name) {
+				Kefir.merge([Kefir.constant(''), Kefir.constant(ls(nameKey)).filter(function (x) {
+					return !!x;
+				}), Kefir.fromEvents(ls, nameKey), nameView.ostream]).onValue(function (name) {
 					return myName.set(name);
 				});
 				nameView.ostream.onValue(function (name) {
