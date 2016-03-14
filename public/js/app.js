@@ -50,79 +50,12 @@
 
 	__webpack_require__(1);
 
-	var _ = __webpack_require__(191),
-	    domChanger = __webpack_require__(193),
-	    ls = __webpack_require__(194),
-	    Firebase = __webpack_require__(197),
-	    Kefir = __webpack_require__(198),
-	    TextInput = __webpack_require__(199);
+	var Orchestrator = __webpack_require__(191);
 
 	var data = window.data || {};
 
-	var snaps = function snaps(ref) {
-		return Kefir.fromEvents(ref, 'value');
-	};
-
-	// Defining the component
-	function Echo() {
-		return { render: function render(users) {
-				return ['ul', users.map(function (u) {
-					return ['li', u.name + ': ' + u.vote];
-				})];
-			}
-		};
-	}
-
-	// Creating a instance attached to document.body
-	var instance = domChanger(Echo, document.body);
-
-	if (data.room) {
-		(function () {
-			var db = new Firebase(data.db_url);
-			var authUpdate = Kefir.stream(function (emitter) {
-				return db.onAuth(function (auth) {
-					return emitter.emit(auth);
-				});
-			});
-			var authStream = Kefir.merge([Kefir.constant(db.getAuth()), authUpdate]);
-
-			authStream.onValue(function (auth) {
-				if (!auth) {
-					db.authAnonymously();
-					return;
-				}
-
-				var room = db.child(data.room);
-				var topic = room.child('topic');
-
-				var users = snaps(room.child('users')).map(function (snap) {
-					return _.values(snap.val());
-				});
-				users.onValue(function (users) {
-					instance.update(users);
-				});
-
-				var me = room.child('users/' + auth.uid);
-				me.onDisconnect().remove();
-				me.set({ vote: '0' });
-
-				var myName = me.child('name');
-				var nameKey = data.room + '/name';
-				var nameView = new TextInput(document.body, snaps(myName).map(function (snap) {
-					return snap.val();
-				}));
-				Kefir.merge([Kefir.constant(''), Kefir.constant(ls(nameKey)).filter(function (x) {
-					return !!x;
-				}), Kefir.fromEvents(ls, nameKey), nameView.ostream]).onValue(function (name) {
-					return myName.set(name);
-				});
-				nameView.ostream.onValue(function (name) {
-					return ls(nameKey, name);
-				});
-			});
-		})();
-	} else {
-		instance.update([]);
+	if (data.view === 'room') {
+		new Orchestrator(data, document);
 	}
 
 /***/ },
@@ -5390,6 +5323,111 @@
 
 /***/ },
 /* 191 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	var _ = __webpack_require__(192),
+	    ls = __webpack_require__(194),
+	    Firebase = __webpack_require__(197),
+	    Kefir = __webpack_require__(198),
+	    RootView = __webpack_require__(199);
+
+	var snaps = function snaps(ref) {
+		return Kefir.fromEvents(ref, 'value');
+	};
+
+	module.exports = function () {
+		function Orchestrator(data, document) {
+			var _this = this;
+
+			_classCallCheck(this, Orchestrator);
+
+			this.db = new Firebase(data.db_url);
+			this.changes = Kefir.pool();
+			this.view = new RootView(document.body, this.changes);
+
+			this.auth = Kefir.stream(function (emitter) {
+				_this.db.onAuth(function (authObj) {
+					if (authObj) {
+						emitter.emit(authObj);
+					} else {
+						emitter.error();
+					}
+				});
+			});
+
+			this.auth.onError(function (e) {
+				_this.db.authAnonymously();
+			});
+
+			Kefir.combine([this.auth.filter().map(function (v) {
+				return v.uid;
+			}), Kefir.constant(data.room)]).onValue(function (args) {
+				_this._setup.apply(_this, _toConsumableArray(args));
+			});
+
+			this.db.authAnonymously();
+		}
+
+		_createClass(Orchestrator, [{
+			key: '_setup',
+			value: function _setup(id, room) {
+				this.room = this.db.child(room);
+				this.users = this.room.child('users');
+				this.user = this.room.child('users/' + id);
+				this.userName = this.user.child('name');
+				this.userVote = this.user.child('vote');
+
+				this.changes.plug(snaps(this.users).map(function (snap) {
+					return { users: _.values(snap.val()) };
+				}));
+
+				this.changes.plug(snaps(this.userName).map(function (snap) {
+					return { name: snap.val() };
+				}));
+
+				this.changes.plug(snaps(this.userVote).map(function (snap) {
+					return { vote: snap.val() };
+				}));
+
+				this.storeKey = 'pk/' + room;
+				this.user.onDisconnect().remove();
+
+				this._setupActions(this.view.events);
+			}
+		}, {
+			key: '_setupActions',
+			value: function _setupActions(events) {
+				var _this2 = this;
+
+				var key = this.storeKey + '/name';
+				var nameEvents = events.filter(function (e) {
+					return _.has(e, 'change:name');
+				}).map(function (e) {
+					return e['change:name'];
+				});
+
+				Kefir.merge([Kefir.constant(ls(key)), Kefir.fromEvents(ls, key), nameEvents]).filter(function (name) {
+					return _.isString(name);
+				}).onValue(function (name) {
+					_this2.userName.set(name);
+					ls(key, name);
+				});
+			}
+		}]);
+
+		return Orchestrator;
+	}();
+
+/***/ },
+/* 192 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(module, global) {/**
@@ -20326,10 +20364,10 @@
 	  }
 	}.call(this));
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(192)(module), (function() { return this; }())))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(193)(module), (function() { return this; }())))
 
 /***/ },
-/* 192 */
+/* 193 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -20342,501 +20380,6 @@
 		}
 		return module;
 	}
-
-
-/***/ },
-/* 193 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*
-	Design of internal tree used for diffing algorithm:
-	==================================================
-
-	- collection of nodes is object with keys being unique name of node.
-	- items can be component, text node, tag node, or raw element:
-	  - text nodes contain {text, el} (el is only when instanced)
-	  - tag nodes contain {tagName, el, props, children} (el is only when instaced)
-	  - raw elements simply contain {el}
-	  - components in the new tree contain {component, data}, but once instanced
-	    contain {append, destroy, handleEvent, update} or the component instance itself.
-
-	Unique Name Algorithm:
-	=====================
-
-	Unique names are given to each node so that we can track their movement and
-	be smart about reusing nodes when changes happen.
-
-	- Names are only unique to their parent node, not globally.
-	- Components are named by their constructor name and optional user provided key
-	- Elements are named by their tag name and optional user provided ref
-	- Text nodes are simply named "text" and raw nodes are "el".
-	- When a duplicate name happens, the second one gets "-2" appended, then "-3"
-	  and so on.
-	*/
-
-	( // Module boilerplate to support commonjs, browser globals and AMD.
-	  (typeof module === "object" && typeof module.exports === "object" && function (m) { module.exports = m(); }) ||
-	  ("function" === "function" && function (m) { !(__WEBPACK_AMD_DEFINE_FACTORY__ = (m), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); }) ||
-	  (function (m) { window.domChanger = m(); })
-	)(function () {
-	"use strict";
-
-	function forEach(obj, fn) {
-	  var keys = Object.keys(obj);
-	  for (var i = 0, l = keys.length; i < l; ++i) {
-	    var key = keys[i];
-	    fn(key, obj[key]);
-	  }
-	}
-
-	function createComponent(component, parent, owner) {
-	  var refs = {};
-	  var data = [];
-	  var roots = {};
-	  // console.log("new " + component.name);
-	  var out = component(emit, refresh, refs);
-	  var render = out.render;
-	  var on = out.on || {};
-	  var cleanup = out.cleanup || noop;
-	  var instance = {
-	    update: update,
-	    destroy: destroy,
-	    append: append,
-	    handleEvent: handleEvent
-	  };
-
-	  // Add comment for this component.
-	  var comment = document.createComment(component.name);
-	  parent.appendChild(comment);
-
-	  return instance;
-
-	  function append() {
-	    comment.parentNode.appendChild(comment);
-	    forEach(roots, function (key, node) {
-	      if (node.el) parent.appendChild(node.el);
-	      else if (node.append) node.append();
-	    });
-	  }
-
-	  function destroy() {
-	    // console.log("destroy", component.name);
-	    comment.parentNode.removeChild(comment);
-	    comment = null;
-	    cleanRoots(roots);
-	    delete instance.update;
-	    delete instance.destroy;
-	    delete instance.handleEvent;
-	    cleanup();
-	  }
-
-	  function cleanRoots(roots) {
-	    forEach(roots, function (key, node) {
-	      if (node.el) node.el.parentNode.removeChild(node.el);
-	      else if (node.destroy) node.destroy();
-	      delete roots[key];
-	      if (node.children) cleanRoots(node.children);
-	    });
-	  }
-
-	  function refresh() {
-	    if (!render) return;
-	    var tree = nameNodes(render.apply(null, data));
-	    apply(parent, tree, roots);
-	  }
-
-	  function removeItem(item) {
-	    if (item.destroy) item.destroy();
-	    else item.el.parentNode.removeChild(item.el);
-	  }
-
-	  function apply(top, newTree, oldTree) {
-
-	    // Delete any items that don't exist in the new tree
-	    forEach(oldTree, function (key, item) {
-	      if (!newTree[key]) {
-	        removeItem(item);
-	        delete oldTree[key];
-	        // console.log("removed " + key)
-	      }
-	    });
-
-	    var oldKeys = Object.keys(oldTree);
-	    var newKeys = Object.keys(newTree);
-	    var index, length, key;
-	    for (index = 0, length = newKeys.length; index < length; index++) {
-	      key = newKeys[index];
-	      // console.group(key);
-	      var item = oldTree[key];
-	      var newItem = newTree[key];
-
-	      // Handle text nodes
-	      if ("text" in newItem) {
-	        if (item) {
-	          // Update the text if it's changed.
-	          if (newItem.text !== item.text) {
-	            item.el.nodeValue = item.text = newItem.text;
-	            // console.log("updated")
-	          }
-	        }
-	        else {
-	          // Otherwise create a new text node.
-	          item = oldTree[key] = {
-	            text: newItem.text,
-	            el: document.createTextNode(newItem.text)
-	          };
-	          top.appendChild(item.el);
-	          // console.log("created")
-	        }
-	      }
-
-	      // Handle tag nodes
-	      else if (newItem.tagName) {
-	        // Create a new item if there isn't one
-	        if (!item) {
-	          item = oldTree[key] = {
-	            tagName: newItem.tagName,
-	            el: document.createElement(newItem.tagName),
-	            children: {}
-	          };
-	          if (newItem.ref) {
-	            item.ref = newItem.ref;
-	            refs[item.ref] = item.el;
-	          }
-	          top.appendChild(item.el);
-	          // console.log("created")
-	        }
-	        // Update the tag
-	        if (!item.props) item.props = {};
-	        updateAttrs(item.el, newItem.props, item.props);
-
-	        if (newItem.children) {
-	          apply(item.el, newItem.children, item.children);
-	        }
-	      }
-
-	      // Handle component nodes
-	      else if (newItem.component) {
-	        if (!item) {
-	          item = oldTree[key] = createComponent(newItem.component, top, instance);
-	          item.append();
-	          // console.log("created")
-	        }
-	        item.update.apply(null, newItem.data);
-	      }
-
-	      else if (newItem.el) {
-	        if (item) {
-	          item = removeItem(item);
-	        }
-	        item = oldTree[key] = {
-	          el: newItem.el
-	        };
-	        top.appendChild(item.el);
-	      }
-
-	      else {
-	        console.error(newItem);
-	        throw new Error("This shouldn't happen");
-	      }
-
-	      // console.groupEnd(key);
-	    }
-
-	    // Check to see if set needs re-ordering
-	    var needOrder = false;
-	    for (index = 0, length = newKeys.length; index < length; index++) {
-	      key = newKeys[index];
-	      var oldIndex = oldKeys.indexOf(key);
-	      if (oldIndex >= 0 && oldIndex !== index) {
-	        needOrder = true;
-	        break;
-	      }
-	    }
-
-	    // If it does, sort the set and virtual tree to match the new order
-	    if (needOrder) {
-	      forEach(newTree, function (key) {
-	        var item = oldTree[key];
-	        delete oldTree[key];
-	        oldTree[key] = item;
-	        if (item.append) item.append();
-	        else top.appendChild(item.el);
-	      });
-	      // console.log("reordered")
-	    }
-
-	  }
-
-	  function update() {
-	    data = slice.call(arguments);
-	    refresh();
-	  }
-
-	  function emit() {
-	    if (!owner) throw new Error("Can't emit events from top-level component");
-	    owner.handleEvent.apply(null, arguments);
-	  }
-
-	  function handleEvent(name) {
-	    var handler = on[name];
-	    if (!handler) {
-	      if (owner) return owner.handleEvent.apply(null, arguments);
-	      throw new Error("Missing event handler for " + name);
-	    }
-	    handler.apply(null, slice.call(arguments, 1));
-	  }
-
-	}
-
-
-	// Given raw JSON-ML data, return a virtual DOM tree with auto-named nodes.
-	function nameNodes(raw) {
-	  var tree = {};
-	  processItem(tree, raw);
-	  return tree;
-
-	  function processItem(nodes, item) {
-
-	    // Figure out what type of item this is and normalize data a bit.
-	    var type, first, tag;
-	    if (typeof item === "number") {
-	      item = String(item);
-	    }
-	    if (typeof item === "string") {
-	      type = "text";
-	    }
-	    else if (Array.isArray(item)) {
-	      if (!item.length) return;
-	      first = item[0];
-	      if (typeof first === "function") {
-	        type = "component";
-	      }
-	      else if (typeof first === "string") {
-	        tag = processTag(item);
-	        type = "element";
-	      }
-	      else {
-	        item.forEach(function (child) {
-	          processItem(nodes, child);
-	        });
-	        return;
-	      }
-	    }
-	    else if (item instanceof HTMLElement) {
-	      type = "el";
-	    }
-	    else {
-	      console.error(item);
-	      throw new TypeError("Invalid item");
-	    }
-
-	    // Find a unique name for this local namespace.
-	    var i = 1;
-	    var subType = type == "element" ? tag.name : type == "component" ? item[0].name : type;
-	    var id = type === "element" ? tag.ref : type === "component" ? item.key : null;
-	    var newPath = id ? subType + "-" + id : subType;
-	    while (nodes[newPath]) newPath = subType + "-" + (id || "") + (++i);
-
-	    var node;
-
-	    if (type === "text") {
-	      nodes[newPath] = {
-	        text: item
-	      };
-	      return;
-	    }
-
-	    if (type === "el") {
-	      nodes[newPath] = {
-	        el: item
-	      };
-	      return;
-	    }
-
-	    if (type === "element") {
-	      var sub = {};
-	      node = nodes[newPath] = {
-	        tagName: tag.name,
-	      };
-	      if (!isEmpty(tag.props)) node.props = tag.props;
-	      if (tag.ref) node.ref = tag.ref;
-	      tag.body.forEach(function (child) {
-	        processItem(sub, child);
-	      });
-	      if (!isEmpty(sub)) node.children = sub;
-	      return;
-	    }
-
-	    if (type === "component") {
-	      nodes[newPath] = {
-	        component: item[0],
-	        data: item.slice(1)
-	      };
-	      return;
-	    }
-
-	    throw new TypeError("Invalid type");
-	  }
-
-	}
-
-	// Parse and process a JSON-ML element.
-	function processTag(array) {
-	  var props = {}, body;
-	  if (array[1] && array[1].constructor === Object) {
-	    var keys = Object.keys(array[1]);
-	    for (var i = 0, l = keys.length; i < l; i++) {
-	      var key = keys[i];
-	      props[key] = array[1][key];
-	    }
-	    body = array.slice(2);
-	  }
-	  else {
-	    body = array.slice(1);
-	  }
-	  var string = array[0];
-	  var name = string.match(TAG_MATCH);
-	  var tag = {
-	    name: name ? name[0] : "div",
-	    props: props,
-	    body: body
-	  };
-	  var classes = string.match(CLASS_MATCH);
-	  if (classes) {
-	    classes = classes.map(stripFirst).join(" ");
-	    if (props.class) props.class += " " + classes;
-	    else props.class = classes;
-	  }
-	  var id = string.match(ID_MATCH);
-	  if (id) {
-	    props.id = stripFirst(id[0]);
-	  }
-	  var ref = string.match(REF_MATCH);
-	  if (ref) {
-	    tag.ref = stripFirst(ref[0]);
-	  }
-	  return tag;
-	}
-
-	function updateAttrs(node, attrs, old) {
-
-	  // Remove any attributes that were in the old version, but not in the new.
-	  Object.keys(old).forEach(function (key) {
-	    // Don't remove attributes still live.
-	    if (attrs && attrs[key]) return;
-
-	    // Special case to remove event handlers
-	    if (key.substr(0, 2) === "on") {
-	      var eventName = key.substring(2);
-	      node.removeEventListener(eventName, old[key]);
-	    }
-
-	    // All other attributes remove normally including "style"
-	    else {
-	      node.removeAttribute(key);
-	    }
-	    // console.log("unset " + key)
-
-	    // Remove from virtual DOM too.
-	    old[key] = null;
-	  });
-
-	  // Add in new attributes and update existing ones.
-	  if (attrs) forEach(attrs, function (key, value) {
-	    var oldValue = old[key];
-
-	    // Special case for object form styles
-	    if (key === "style" && typeof value === "object") {
-	      // Remove old version if it was in string form before.
-	      if (typeof oldValue === "string") {
-	        node.removeAttribute("style");
-	        // console.log("unset style")
-	      }
-	      // Make sure the virtual DOM is in object form.
-	      if (!oldValue || typeof oldValue !== "object") {
-	        oldValue = old.style = {};
-	      }
-	      updateStyle(node.style, value, oldValue);
-	      return;
-	    }
-
-	    // Skip any unchanged values.
-	    if (oldValue === value) return;
-
-	    // Record new value in virtual tree
-	    old[key] = value;
-
-	    // Add event listeners for attributes starting with "on"
-	    if (key.substr(0, 2) === "on") {
-	      var eventName = key.substring(2);
-	      // If an event listener is updated, remove the old one.
-	      if (oldValue) {
-	        node.removeEventListener(eventName, oldValue);
-	      }
-	      // Add the new listener
-	      node.addEventListener(eventName, value);
-	    }
-	    else if (key === "checked" && node.nodeName === "INPUT") {
-	      if (node.checked === value) return;
-	      node.checked = value;
-	    }
-	    // different way of updating the (actual) value for inputs
-	    else if (key === 'value' && node.nodeName === 'INPUT') {
-	      // Make sure the value is actually different.
-	      if (node.value === value) return;
-	      node.value = value;
-	    }
-	    // Handle boolean values as valueless attributes
-	    else if (typeof value === "boolean") {
-	      if (value) node.setAttribute(key, key);
-	      else node.removeAttribute(key);
-	    }
-	    // handle normal attribute
-	    else {
-	      node.setAttribute(key, value);
-	    }
-
-	    // console.log("set " + key)
-
-	  });
-
-	}
-
-	function updateStyle(style, attrs, old) {
-	  // Remove any old styles that aren't there anymore
-	  forEach(old, function (key) {
-	    if (attrs && attrs[key]) return;
-	    old[key] = style[key] = "";
-	    // console.log("unstyled " + key)
-	  });
-	  if (attrs) forEach(attrs, function (key, value) {
-	    var oldValue = old[key];
-	    if (oldValue === value) return;
-	    old[key] = style[key] = attrs[key];
-	    // console.log("styled " + key)
-	  });
-	}
-
-	function stripFirst(part) {
-	  return part.substring(1);
-	}
-
-	function isEmpty(obj) {
-	  return !Object.keys(obj).length;
-	}
-
-	var CLASS_MATCH = /\.[^.#$]+/g,
-	    ID_MATCH = /#[^.#$]+/,
-	    REF_MATCH = /\$[^.#$]+/,
-	    TAG_MATCH = /^[^.#$]+/;
-
-	var slice = [].slice;
-	function noop() {}
-
-	return createComponent;
-
-	});
 
 
 /***/ },
@@ -26108,37 +25651,539 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var Element = __webpack_require__(200);
+	var domChanger = __webpack_require__(200),
+	    Kefir = __webpack_require__(198),
+	    View = __webpack_require__(201),
+	    NameView = __webpack_require__(202),
+	    UsersView = __webpack_require__(203);
 
-	module.exports = function (_Element) {
-		_inherits(TextInput, _Element);
+	module.exports = function (_View) {
+		_inherits(RootView, _View);
 
-		function TextInput() {
-			_classCallCheck(this, TextInput);
+		function RootView(owner, changes) {
+			_classCallCheck(this, RootView);
 
-			return _possibleConstructorReturn(this, Object.getPrototypeOf(TextInput).apply(this, arguments));
+			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(RootView).call(this, changes));
+
+			_this.events = Kefir.pool();
+
+			_this.nameView = new NameView(changes);
+			_this.events.plug(_this.nameView.events);
+
+			_this.usersView = new UsersView(changes);
+			_this.events.plug(_this.usersView.events);
+
+			domChanger(_this.component, owner).update();
+			return _this;
 		}
 
-		_createClass(TextInput, [{
+		_createClass(RootView, [{
 			key: '_render',
-			value: function _render(text) {
-				var _this2 = this;
-
-				return ['input', {
-					oninput: function oninput(e) {
-						return _this2._emit(e.target.value);
-					},
-					type: 'text',
-					value: text
-				}];
+			value: function _render() {
+				return ['div', [this.nameView.component], [this.usersView.component]];
 			}
 		}]);
 
-		return TextInput;
-	}(Element);
+		return RootView;
+	}(View);
 
 /***/ },
 /* 200 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*
+	Design of internal tree used for diffing algorithm:
+	==================================================
+
+	- collection of nodes is object with keys being unique name of node.
+	- items can be component, text node, tag node, or raw element:
+	  - text nodes contain {text, el} (el is only when instanced)
+	  - tag nodes contain {tagName, el, props, children} (el is only when instaced)
+	  - raw elements simply contain {el}
+	  - components in the new tree contain {component, data}, but once instanced
+	    contain {append, destroy, handleEvent, update} or the component instance itself.
+
+	Unique Name Algorithm:
+	=====================
+
+	Unique names are given to each node so that we can track their movement and
+	be smart about reusing nodes when changes happen.
+
+	- Names are only unique to their parent node, not globally.
+	- Components are named by their constructor name and optional user provided key
+	- Elements are named by their tag name and optional user provided ref
+	- Text nodes are simply named "text" and raw nodes are "el".
+	- When a duplicate name happens, the second one gets "-2" appended, then "-3"
+	  and so on.
+	*/
+
+	( // Module boilerplate to support commonjs, browser globals and AMD.
+	  (typeof module === "object" && typeof module.exports === "object" && function (m) { module.exports = m(); }) ||
+	  ("function" === "function" && function (m) { !(__WEBPACK_AMD_DEFINE_FACTORY__ = (m), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); }) ||
+	  (function (m) { window.domChanger = m(); })
+	)(function () {
+	"use strict";
+
+	function forEach(obj, fn) {
+	  var keys = Object.keys(obj);
+	  for (var i = 0, l = keys.length; i < l; ++i) {
+	    var key = keys[i];
+	    fn(key, obj[key]);
+	  }
+	}
+
+	function createComponent(component, parent, owner) {
+	  var refs = {};
+	  var data = [];
+	  var roots = {};
+	  // console.log("new " + component.name);
+	  var out = component(emit, refresh, refs);
+	  var render = out.render;
+	  var on = out.on || {};
+	  var cleanup = out.cleanup || noop;
+	  var instance = {
+	    update: update,
+	    destroy: destroy,
+	    append: append,
+	    handleEvent: handleEvent
+	  };
+
+	  // Add comment for this component.
+	  var comment = document.createComment(component.name);
+	  parent.appendChild(comment);
+
+	  return instance;
+
+	  function append() {
+	    comment.parentNode.appendChild(comment);
+	    forEach(roots, function (key, node) {
+	      if (node.el) parent.appendChild(node.el);
+	      else if (node.append) node.append();
+	    });
+	  }
+
+	  function destroy() {
+	    // console.log("destroy", component.name);
+	    comment.parentNode.removeChild(comment);
+	    comment = null;
+	    cleanRoots(roots);
+	    delete instance.update;
+	    delete instance.destroy;
+	    delete instance.handleEvent;
+	    cleanup();
+	  }
+
+	  function cleanRoots(roots) {
+	    forEach(roots, function (key, node) {
+	      if (node.el) node.el.parentNode.removeChild(node.el);
+	      else if (node.destroy) node.destroy();
+	      delete roots[key];
+	      if (node.children) cleanRoots(node.children);
+	    });
+	  }
+
+	  function refresh() {
+	    if (!render) return;
+	    var tree = nameNodes(render.apply(null, data));
+	    apply(parent, tree, roots);
+	  }
+
+	  function removeItem(item) {
+	    if (item.destroy) item.destroy();
+	    else item.el.parentNode.removeChild(item.el);
+	  }
+
+	  function apply(top, newTree, oldTree) {
+
+	    // Delete any items that don't exist in the new tree
+	    forEach(oldTree, function (key, item) {
+	      if (!newTree[key]) {
+	        removeItem(item);
+	        delete oldTree[key];
+	        // console.log("removed " + key)
+	      }
+	    });
+
+	    var oldKeys = Object.keys(oldTree);
+	    var newKeys = Object.keys(newTree);
+	    var index, length, key;
+	    for (index = 0, length = newKeys.length; index < length; index++) {
+	      key = newKeys[index];
+	      // console.group(key);
+	      var item = oldTree[key];
+	      var newItem = newTree[key];
+
+	      // Handle text nodes
+	      if ("text" in newItem) {
+	        if (item) {
+	          // Update the text if it's changed.
+	          if (newItem.text !== item.text) {
+	            item.el.nodeValue = item.text = newItem.text;
+	            // console.log("updated")
+	          }
+	        }
+	        else {
+	          // Otherwise create a new text node.
+	          item = oldTree[key] = {
+	            text: newItem.text,
+	            el: document.createTextNode(newItem.text)
+	          };
+	          top.appendChild(item.el);
+	          // console.log("created")
+	        }
+	      }
+
+	      // Handle tag nodes
+	      else if (newItem.tagName) {
+	        // Create a new item if there isn't one
+	        if (!item) {
+	          item = oldTree[key] = {
+	            tagName: newItem.tagName,
+	            el: document.createElement(newItem.tagName),
+	            children: {}
+	          };
+	          if (newItem.ref) {
+	            item.ref = newItem.ref;
+	            refs[item.ref] = item.el;
+	          }
+	          top.appendChild(item.el);
+	          // console.log("created")
+	        }
+	        // Update the tag
+	        if (!item.props) item.props = {};
+	        updateAttrs(item.el, newItem.props, item.props);
+
+	        if (newItem.children) {
+	          apply(item.el, newItem.children, item.children);
+	        }
+	      }
+
+	      // Handle component nodes
+	      else if (newItem.component) {
+	        if (!item) {
+	          item = oldTree[key] = createComponent(newItem.component, top, instance);
+	          item.append();
+	          // console.log("created")
+	        }
+	        item.update.apply(null, newItem.data);
+	      }
+
+	      else if (newItem.el) {
+	        if (item) {
+	          item = removeItem(item);
+	        }
+	        item = oldTree[key] = {
+	          el: newItem.el
+	        };
+	        top.appendChild(item.el);
+	      }
+
+	      else {
+	        console.error(newItem);
+	        throw new Error("This shouldn't happen");
+	      }
+
+	      // console.groupEnd(key);
+	    }
+
+	    // Check to see if set needs re-ordering
+	    var needOrder = false;
+	    for (index = 0, length = newKeys.length; index < length; index++) {
+	      key = newKeys[index];
+	      var oldIndex = oldKeys.indexOf(key);
+	      if (oldIndex >= 0 && oldIndex !== index) {
+	        needOrder = true;
+	        break;
+	      }
+	    }
+
+	    // If it does, sort the set and virtual tree to match the new order
+	    if (needOrder) {
+	      forEach(newTree, function (key) {
+	        var item = oldTree[key];
+	        delete oldTree[key];
+	        oldTree[key] = item;
+	        if (item.append) item.append();
+	        else top.appendChild(item.el);
+	      });
+	      // console.log("reordered")
+	    }
+
+	  }
+
+	  function update() {
+	    data = slice.call(arguments);
+	    refresh();
+	  }
+
+	  function emit() {
+	    if (!owner) throw new Error("Can't emit events from top-level component");
+	    owner.handleEvent.apply(null, arguments);
+	  }
+
+	  function handleEvent(name) {
+	    var handler = on[name];
+	    if (!handler) {
+	      if (owner) return owner.handleEvent.apply(null, arguments);
+	      throw new Error("Missing event handler for " + name);
+	    }
+	    handler.apply(null, slice.call(arguments, 1));
+	  }
+
+	}
+
+
+	// Given raw JSON-ML data, return a virtual DOM tree with auto-named nodes.
+	function nameNodes(raw) {
+	  var tree = {};
+	  processItem(tree, raw);
+	  return tree;
+
+	  function processItem(nodes, item) {
+
+	    // Figure out what type of item this is and normalize data a bit.
+	    var type, first, tag;
+	    if (typeof item === "number") {
+	      item = String(item);
+	    }
+	    if (typeof item === "string") {
+	      type = "text";
+	    }
+	    else if (Array.isArray(item)) {
+	      if (!item.length) return;
+	      first = item[0];
+	      if (typeof first === "function") {
+	        type = "component";
+	      }
+	      else if (typeof first === "string") {
+	        tag = processTag(item);
+	        type = "element";
+	      }
+	      else {
+	        item.forEach(function (child) {
+	          processItem(nodes, child);
+	        });
+	        return;
+	      }
+	    }
+	    else if (item instanceof HTMLElement) {
+	      type = "el";
+	    }
+	    else {
+	      console.error(item);
+	      throw new TypeError("Invalid item");
+	    }
+
+	    // Find a unique name for this local namespace.
+	    var i = 1;
+	    var subType = type == "element" ? tag.name : type == "component" ? item[0].name : type;
+	    var id = type === "element" ? tag.ref : type === "component" ? item.key : null;
+	    var newPath = id ? subType + "-" + id : subType;
+	    while (nodes[newPath]) newPath = subType + "-" + (id || "") + (++i);
+
+	    var node;
+
+	    if (type === "text") {
+	      nodes[newPath] = {
+	        text: item
+	      };
+	      return;
+	    }
+
+	    if (type === "el") {
+	      nodes[newPath] = {
+	        el: item
+	      };
+	      return;
+	    }
+
+	    if (type === "element") {
+	      var sub = {};
+	      node = nodes[newPath] = {
+	        tagName: tag.name,
+	      };
+	      if (!isEmpty(tag.props)) node.props = tag.props;
+	      if (tag.ref) node.ref = tag.ref;
+	      tag.body.forEach(function (child) {
+	        processItem(sub, child);
+	      });
+	      if (!isEmpty(sub)) node.children = sub;
+	      return;
+	    }
+
+	    if (type === "component") {
+	      nodes[newPath] = {
+	        component: item[0],
+	        data: item.slice(1)
+	      };
+	      return;
+	    }
+
+	    throw new TypeError("Invalid type");
+	  }
+
+	}
+
+	// Parse and process a JSON-ML element.
+	function processTag(array) {
+	  var props = {}, body;
+	  if (array[1] && array[1].constructor === Object) {
+	    var keys = Object.keys(array[1]);
+	    for (var i = 0, l = keys.length; i < l; i++) {
+	      var key = keys[i];
+	      props[key] = array[1][key];
+	    }
+	    body = array.slice(2);
+	  }
+	  else {
+	    body = array.slice(1);
+	  }
+	  var string = array[0];
+	  var name = string.match(TAG_MATCH);
+	  var tag = {
+	    name: name ? name[0] : "div",
+	    props: props,
+	    body: body
+	  };
+	  var classes = string.match(CLASS_MATCH);
+	  if (classes) {
+	    classes = classes.map(stripFirst).join(" ");
+	    if (props.class) props.class += " " + classes;
+	    else props.class = classes;
+	  }
+	  var id = string.match(ID_MATCH);
+	  if (id) {
+	    props.id = stripFirst(id[0]);
+	  }
+	  var ref = string.match(REF_MATCH);
+	  if (ref) {
+	    tag.ref = stripFirst(ref[0]);
+	  }
+	  return tag;
+	}
+
+	function updateAttrs(node, attrs, old) {
+
+	  // Remove any attributes that were in the old version, but not in the new.
+	  Object.keys(old).forEach(function (key) {
+	    // Don't remove attributes still live.
+	    if (attrs && attrs[key]) return;
+
+	    // Special case to remove event handlers
+	    if (key.substr(0, 2) === "on") {
+	      var eventName = key.substring(2);
+	      node.removeEventListener(eventName, old[key]);
+	    }
+
+	    // All other attributes remove normally including "style"
+	    else {
+	      node.removeAttribute(key);
+	    }
+	    // console.log("unset " + key)
+
+	    // Remove from virtual DOM too.
+	    old[key] = null;
+	  });
+
+	  // Add in new attributes and update existing ones.
+	  if (attrs) forEach(attrs, function (key, value) {
+	    var oldValue = old[key];
+
+	    // Special case for object form styles
+	    if (key === "style" && typeof value === "object") {
+	      // Remove old version if it was in string form before.
+	      if (typeof oldValue === "string") {
+	        node.removeAttribute("style");
+	        // console.log("unset style")
+	      }
+	      // Make sure the virtual DOM is in object form.
+	      if (!oldValue || typeof oldValue !== "object") {
+	        oldValue = old.style = {};
+	      }
+	      updateStyle(node.style, value, oldValue);
+	      return;
+	    }
+
+	    // Skip any unchanged values.
+	    if (oldValue === value) return;
+
+	    // Record new value in virtual tree
+	    old[key] = value;
+
+	    // Add event listeners for attributes starting with "on"
+	    if (key.substr(0, 2) === "on") {
+	      var eventName = key.substring(2);
+	      // If an event listener is updated, remove the old one.
+	      if (oldValue) {
+	        node.removeEventListener(eventName, oldValue);
+	      }
+	      // Add the new listener
+	      node.addEventListener(eventName, value);
+	    }
+	    else if (key === "checked" && node.nodeName === "INPUT") {
+	      if (node.checked === value) return;
+	      node.checked = value;
+	    }
+	    // different way of updating the (actual) value for inputs
+	    else if (key === 'value' && node.nodeName === 'INPUT') {
+	      // Make sure the value is actually different.
+	      if (node.value === value) return;
+	      node.value = value;
+	    }
+	    // Handle boolean values as valueless attributes
+	    else if (typeof value === "boolean") {
+	      if (value) node.setAttribute(key, key);
+	      else node.removeAttribute(key);
+	    }
+	    // handle normal attribute
+	    else {
+	      node.setAttribute(key, value);
+	    }
+
+	    // console.log("set " + key)
+
+	  });
+
+	}
+
+	function updateStyle(style, attrs, old) {
+	  // Remove any old styles that aren't there anymore
+	  forEach(old, function (key) {
+	    if (attrs && attrs[key]) return;
+	    old[key] = style[key] = "";
+	    // console.log("unstyled " + key)
+	  });
+	  if (attrs) forEach(attrs, function (key, value) {
+	    var oldValue = old[key];
+	    if (oldValue === value) return;
+	    old[key] = style[key] = attrs[key];
+	    // console.log("styled " + key)
+	  });
+	}
+
+	function stripFirst(part) {
+	  return part.substring(1);
+	}
+
+	function isEmpty(obj) {
+	  return !Object.keys(obj).length;
+	}
+
+	var CLASS_MATCH = /\.[^.#$]+/g,
+	    ID_MATCH = /#[^.#$]+/,
+	    REF_MATCH = /\$[^.#$]+/,
+	    TAG_MATCH = /^[^.#$]+/;
+
+	var slice = [].slice;
+	function noop() {}
+
+	return createComponent;
+
+	});
+
+
+/***/ },
+/* 201 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -26147,44 +26192,58 @@
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	var domChanger = __webpack_require__(193);
-	var Kefir = __webpack_require__(198);
+	var _ = __webpack_require__(192),
+	    Kefir = __webpack_require__(198);
 
 	module.exports = function () {
-		function Element(owner, istream) {
+		function View(changes, keys) {
 			var _this = this;
 
-			_classCallCheck(this, Element);
+			_classCallCheck(this, View);
 
-			this.instance = domChanger(this.component.bind(this), owner);
+			changes = changes || Kefir.never();
+			keys = keys || [];
 
-			this.ostream = Kefir.stream(this._subscribe.bind(this));
-
-			this.istream = istream || Kefir.never();
-			this.istream.onValue(function () {
-				var _instance;
-
-				return (_instance = _this.instance).update.apply(_instance, arguments);
+			this.events = Kefir.stream(this._subscribe.bind(this));
+			this.changes = changes.map(function (v) {
+				return _.pick(v, keys);
+			}).filter(function (v) {
+				return !_.isEmpty(v);
+			}).onValue(function (v) {
+				return _this._refresh(v);
 			});
+
+			this._data = {};
+
+			this.component = this.component.bind(this);
+			this._clean = this._clean.bind(this);
+			this._render = this._render.bind(this);
 		}
 
-		_createClass(Element, [{
+		_createClass(View, [{
 			key: 'component',
-			value: function component() {
+			value: function component(emit, refresh) {
+				this._dC_refresh = refresh;
 				return {
-					render: this._render.bind(this),
-					cleanup: this._clean.bind(this)
+					cleanup: this._clean,
+					render: this._render
 				};
 			}
 		}, {
 			key: '_clean',
 			value: function _clean() {
-				this.emitter.end();
+				this._emitter.end();
 			}
 		}, {
 			key: '_emit',
 			value: function _emit(v) {
-				this.emitter.emit(v);
+				this._emitter.emit(v);
+			}
+		}, {
+			key: '_refresh',
+			value: function _refresh(data) {
+				this._data = data;
+				if (this._dC_refresh) this._dC_refresh();
 			}
 		}, {
 			key: '_render',
@@ -26194,12 +26253,100 @@
 		}, {
 			key: '_subscribe',
 			value: function _subscribe(emitter) {
-				this.emitter = emitter;
+				this._emitter = emitter;
 			}
 		}]);
 
-		return Element;
+		return View;
 	}();
+
+/***/ },
+/* 202 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var View = __webpack_require__(201);
+
+	module.exports = function (_View) {
+		_inherits(NameView, _View);
+
+		function NameView(changes) {
+			_classCallCheck(this, NameView);
+
+			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(NameView).call(this, changes, ['name']));
+
+			_this.events = _this.events.map(function (name) {
+				return { 'change:name': name };
+			});
+			return _this;
+		}
+
+		_createClass(NameView, [{
+			key: '_render',
+			value: function _render() {
+				var _this2 = this;
+
+				return ['input', {
+					oninput: function oninput(e) {
+						return _this2._emit(e.target.value);
+					},
+					type: 'text',
+					value: this._data.name
+				}];
+			}
+		}]);
+
+		return NameView;
+	}(View);
+
+/***/ },
+/* 203 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var View = __webpack_require__(201);
+
+	module.exports = function (_View) {
+		_inherits(UsersView, _View);
+
+		function UsersView(changes) {
+			_classCallCheck(this, UsersView);
+
+			return _possibleConstructorReturn(this, Object.getPrototypeOf(UsersView).call(this, changes, ['users']));
+		}
+
+		_createClass(UsersView, [{
+			key: '_render',
+			value: function _render() {
+				if (this._data.users) {
+					return ['ul', this._data.users.map(function (u) {
+						return ['li', u.name + ': ' + u.vote];
+					})];
+				}
+				return [];
+			}
+		}]);
+
+		return UsersView;
+	}(View);
 
 /***/ }
 /******/ ]);
