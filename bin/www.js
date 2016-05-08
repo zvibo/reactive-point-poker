@@ -1,2 +1,2 @@
 require("babel-register")({presets: ['es2015']});
-require('../app');
+require('../src/server/app');

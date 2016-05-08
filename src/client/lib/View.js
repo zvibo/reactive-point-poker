@@ -5,15 +5,19 @@ const _ = require('lodash')
 	;
 
 module.exports = class View {
-	constructor(changes, keys) {
-		changes = changes || Kefir.never();
-		keys = keys || [];
-
+	constructor(changes = Kefir.never(), keys = [], modifier = s => s) {
 		this.events = Kefir.stream(this._subscribe.bind(this));
-		this.changes = changes
-			.map(v => _.pick(v, keys))
-			.filter(v => !_.isEmpty(v))
-			.onValue(v => this._refresh(v));
+
+		this.changes =
+			modifier(
+				changes.map(
+					v => _.pick(v, keys)
+				).filter(
+					v => !_.isEmpty(v)
+				)
+			).onValue(
+				v => this._refresh(v)
+			);
 
 		this._data = {};
 
@@ -39,7 +43,7 @@ module.exports = class View {
 	}
 
 	_refresh(data) {
-		this._data = data;
+		this._data = _.defaults(data, this._data);
 		if(this._dC_refresh) this._dC_refresh();
 	}
 

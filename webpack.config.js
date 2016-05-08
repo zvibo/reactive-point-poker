@@ -1,3 +1,5 @@
+var webpack = require('webpack');
+
 module.exports = {
 	output: {
 		filename: 'app.js'
@@ -14,4 +16,8 @@ module.exports = {
 			}
 		]
 	}
+	// plugins: [
+	// 	new webpack.optimize.UglifyJsPlugin()
+	// ],
+	// devtool: 'source-map'
 };

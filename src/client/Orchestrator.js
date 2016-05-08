@@ -4,12 +4,10 @@ const _ = require('lodash')
 	, ls = require('local-storage')
 	, Firebase = require('firebase')
 	, Kefir = require('kefir')
- 	, RootView = require('./RootView')
+ 	, RootView = require('./views/RootView')
 	;
 
-const snaps = function(ref) {
-	return Kefir.fromEvents(ref, 'value');
-};
+const default_deck = ['0','1','2','3','5','8','13','20','40','∞'];
 
 module.exports = class Orchestrator {
 	constructor(data, document) {
@@ -17,20 +15,8 @@ module.exports = class Orchestrator {
 		this.changes = Kefir.pool();
 		this.view = new RootView(document.body, this.changes);
 
-		this.auth = Kefir.stream(emitter => {
-			this.db.onAuth(authObj => {
-				if(authObj) {
-					emitter.emit(authObj);
-				}
-				else {
-					emitter.error();
-				}
-			});
-		});
-
-		this.auth.onError(e => {
-			this.db.authAnonymously();
-		});
+		this.auth = Kefir.stream(e => this.db.onAuth(auth => auth ? e.emit(auth) : e.error()));
+		this.auth.onError(e => this.db.authAnonymously());
 
 		Kefir.combine([
 			this.auth.filter().map(v => v.uid),
@@ -42,30 +28,28 @@ module.exports = class Orchestrator {
 		this.db.authAnonymously();
 	}
 
+	_plugChanges(reference, transform) {
+		this.changes.plug(
+			Kefir.fromEvents(reference, 'value').map(
+				snap => ({ [reference.key()]: transform ? transform(snap.val()) : snap.val() })
+			)
+		);
+	}
+
 	_setup(id, room) {
 		this.room = this.db.child(room);
+		this.votes = this.room.child('votes');
 		this.users = this.room.child('users');
 		this.user = this.room.child(`users/${id}`);
 		this.userName = this.user.child('name');
 		this.userVote = this.user.child('vote');
 
-		this.changes.plug(
-			snaps(this.users).map(
-				snap => ({ users: _.values(snap.val()) })
-			)
-		);
+		this._plugChanges(this.votes);
+		this._plugChanges(this.users, _.values);
+		this._plugChanges(this.userName);
+		this._plugChanges(this.userVote);
 
-		this.changes.plug(
-			snaps(this.userName).map(
-				snap => ({ name: snap.val() })
-			)
-		);
-
-		this.changes.plug(
-			snaps(this.userVote).map(
-				snap => ({ vote: snap.val() })
-			)
-		);
+		Kefir.fromEvents(this.votes, 'value').filter(snap => !snap.exists()).onValue(() => this.votes.set(default_deck));
 
 		this.storeKey = `pk/${room}`;
 		this.user.onDisconnect().remove();
@@ -76,6 +60,7 @@ module.exports = class Orchestrator {
 	_setupActions(events) {
 		const key = `${this.storeKey}/name`;
 		const nameEvents = events.filter(e => _.has(e,'change:name')).map(e => e['change:name']);
+		const voteEvents = events.filter(e => _.has(e,'change:vote')).map(e => e['change:vote']);
 
 		Kefir.merge([
 			Kefir.constant(ls(key)),
@@ -85,5 +70,7 @@ module.exports = class Orchestrator {
 			this.userName.set(name);
 			ls(key, name);
 		});
+
+		voteEvents.filter(vote => _.isString(vote)).onValue(vote => this.userVote.set(vote));
 	}
 };

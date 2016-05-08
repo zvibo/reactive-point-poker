@@ -1,6 +1,6 @@
 'use strict';
 
-const View = require('./View');
+const View = require('../lib/View');
 
 module.exports = class NameView extends View {
 	constructor(changes) {

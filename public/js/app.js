@@ -5329,6 +5329,8 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -5339,9 +5341,7 @@
 	    Kefir = __webpack_require__(198),
 	    RootView = __webpack_require__(199);
 
-	var snaps = function snaps(ref) {
-		return Kefir.fromEvents(ref, 'value');
-	};
+	var default_deck = ['0', '1', '2', '3', '5', '8', '13', '20', '40', '∞'];
 
 	module.exports = function () {
 		function Orchestrator(data, document) {
@@ -5353,18 +5353,13 @@
 			this.changes = Kefir.pool();
 			this.view = new RootView(document.body, this.changes);
 
-			this.auth = Kefir.stream(function (emitter) {
-				_this.db.onAuth(function (authObj) {
-					if (authObj) {
-						emitter.emit(authObj);
-					} else {
-						emitter.error();
-					}
+			this.auth = Kefir.stream(function (e) {
+				return _this.db.onAuth(function (auth) {
+					return auth ? e.emit(auth) : e.error();
 				});
 			});
-
 			this.auth.onError(function (e) {
-				_this.db.authAnonymously();
+				return _this.db.authAnonymously();
 			});
 
 			Kefir.combine([this.auth.filter().map(function (v) {
@@ -5377,25 +5372,34 @@
 		}
 
 		_createClass(Orchestrator, [{
+			key: '_plugChanges',
+			value: function _plugChanges(reference, transform) {
+				this.changes.plug(Kefir.fromEvents(reference, 'value').map(function (snap) {
+					return _defineProperty({}, reference.key(), transform ? transform(snap.val()) : snap.val());
+				}));
+			}
+		}, {
 			key: '_setup',
 			value: function _setup(id, room) {
+				var _this2 = this;
+
 				this.room = this.db.child(room);
+				this.votes = this.room.child('votes');
 				this.users = this.room.child('users');
 				this.user = this.room.child('users/' + id);
 				this.userName = this.user.child('name');
 				this.userVote = this.user.child('vote');
 
-				this.changes.plug(snaps(this.users).map(function (snap) {
-					return { users: _.values(snap.val()) };
-				}));
+				this._plugChanges(this.votes);
+				this._plugChanges(this.users, _.values);
+				this._plugChanges(this.userName);
+				this._plugChanges(this.userVote);
 
-				this.changes.plug(snaps(this.userName).map(function (snap) {
-					return { name: snap.val() };
-				}));
-
-				this.changes.plug(snaps(this.userVote).map(function (snap) {
-					return { vote: snap.val() };
-				}));
+				Kefir.fromEvents(this.votes, 'value').filter(function (snap) {
+					return !snap.exists();
+				}).onValue(function () {
+					return _this2.votes.set(default_deck);
+				});
 
 				this.storeKey = 'pk/' + room;
 				this.user.onDisconnect().remove();
@@ -5405,7 +5409,7 @@
 		}, {
 			key: '_setupActions',
 			value: function _setupActions(events) {
-				var _this2 = this;
+				var _this3 = this;
 
 				var key = this.storeKey + '/name';
 				var nameEvents = events.filter(function (e) {
@@ -5413,12 +5417,23 @@
 				}).map(function (e) {
 					return e['change:name'];
 				});
+				var voteEvents = events.filter(function (e) {
+					return _.has(e, 'change:vote');
+				}).map(function (e) {
+					return e['change:vote'];
+				});
 
 				Kefir.merge([Kefir.constant(ls(key)), Kefir.fromEvents(ls, key), nameEvents]).filter(function (name) {
 					return _.isString(name);
 				}).onValue(function (name) {
-					_this2.userName.set(name);
+					_this3.userName.set(name);
 					ls(key, name);
+				});
+
+				voteEvents.filter(function (vote) {
+					return _.isString(vote);
+				}).onValue(function (vote) {
+					return _this3.userVote.set(vote);
 				});
 			}
 		}]);
@@ -25654,8 +25669,10 @@
 	var domChanger = __webpack_require__(200),
 	    Kefir = __webpack_require__(198),
 	    View = __webpack_require__(201),
-	    NameView = __webpack_require__(202),
-	    UsersView = __webpack_require__(203);
+	    DeckView = __webpack_require__(202),
+	    NameView = __webpack_require__(203),
+	    ResultsView = __webpack_require__(204),
+	    UsersView = __webpack_require__(205);
 
 	module.exports = function (_View) {
 		_inherits(RootView, _View);
@@ -25673,6 +25690,12 @@
 			_this.usersView = new UsersView(changes);
 			_this.events.plug(_this.usersView.events);
 
+			_this.resultsView = new ResultsView(changes);
+			_this.events.plug(_this.resultsView.events);
+
+			_this.deckView = new DeckView(changes);
+			_this.events.plug(_this.deckView.events);
+
 			domChanger(_this.component, owner).update();
 			return _this;
 		}
@@ -25680,7 +25703,7 @@
 		_createClass(RootView, [{
 			key: '_render',
 			value: function _render() {
-				return ['div', [this.nameView.component], [this.usersView.component]];
+				return ['div', [this.nameView.component], [this.usersView.component], [this.resultsView.component], [this.deckView.component]];
 			}
 		}]);
 
@@ -26196,20 +26219,25 @@
 	    Kefir = __webpack_require__(198);
 
 	module.exports = function () {
-		function View(changes, keys) {
+		function View() {
+			var changes = arguments.length <= 0 || arguments[0] === undefined ? Kefir.never() : arguments[0];
+
 			var _this = this;
+
+			var keys = arguments.length <= 1 || arguments[1] === undefined ? [] : arguments[1];
+			var modifier = arguments.length <= 2 || arguments[2] === undefined ? function (s) {
+				return s;
+			} : arguments[2];
 
 			_classCallCheck(this, View);
 
-			changes = changes || Kefir.never();
-			keys = keys || [];
-
 			this.events = Kefir.stream(this._subscribe.bind(this));
-			this.changes = changes.map(function (v) {
+
+			this.changes = modifier(changes.map(function (v) {
 				return _.pick(v, keys);
 			}).filter(function (v) {
 				return !_.isEmpty(v);
-			}).onValue(function (v) {
+			})).onValue(function (v) {
 				return _this._refresh(v);
 			});
 
@@ -26242,7 +26270,7 @@
 		}, {
 			key: '_refresh',
 			value: function _refresh(data) {
-				this._data = data;
+				this._data = _.defaults(data, this._data);
 				if (this._dC_refresh) this._dC_refresh();
 			}
 		}, {
@@ -26262,6 +26290,64 @@
 
 /***/ },
 /* 202 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var View = __webpack_require__(201);
+
+	module.exports = function (_View) {
+		_inherits(DeckView, _View);
+
+		function DeckView(changes) {
+			_classCallCheck(this, DeckView);
+
+			var _this = _possibleConstructorReturn(this, Object.getPrototypeOf(DeckView).call(this, changes, ['votes', 'vote']));
+
+			_this.events = _this.events.map(function (vote) {
+				return { 'change:vote': vote };
+			});
+			return _this;
+		}
+
+		_createClass(DeckView, [{
+			key: '_render',
+			value: function _render() {
+				var _this2 = this;
+
+				if (this._data.votes) {
+					return ['ul', this._data.votes.map(function (v) {
+						return ['li', ['input', {
+							id: 'vote-' + v,
+							type: 'radio',
+							name: 'votes',
+							value: v,
+							checked: v === _this2._data.vote,
+							onchange: function onchange(e) {
+								return _this2._emit(e.target.value);
+							}
+						}], ['label', {
+							for: 'vote-' + v
+						}, v]];
+					})];
+				}
+				return ['ul'];
+			}
+		}]);
+
+		return DeckView;
+	}(View);
+
+/***/ },
+/* 203 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -26309,10 +26395,71 @@
 	}(View);
 
 /***/ },
-/* 203 */
+/* 204 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var _ = __webpack_require__(192),
+	    Kefir = __webpack_require__(198),
+	    View = __webpack_require__(201);
+
+	module.exports = function (_View) {
+		_inherits(ResultsView, _View);
+
+		function ResultsView(changes) {
+			_classCallCheck(this, ResultsView);
+
+			return _possibleConstructorReturn(this, Object.getPrototypeOf(ResultsView).call(this, changes, ['users'], function (stream) {
+				return stream.map(function (data) {
+					return data.users;
+				}).filter().flatten(function (user) {
+					return user.vote !== undefined ? [user.vote] : [];
+				}).scan(function (counts, vote) {
+					counts[vote] = counts[vote] ? counts[vote] + 1 : 1;
+					return counts;
+				}, {}).map(function (votes) {
+					return {
+						votes: _.sortBy(_.keys(votes)),
+						total: _.reduce(votes, function (total, vote) {
+							return total + vote;
+						}, 0)
+					};
+				});
+			}));
+		}
+
+		_createClass(ResultsView, [{
+			key: '_render',
+			value: function _render() {
+				var _this2 = this;
+
+				return ['ul', this._data.votes.map(function (vote) {
+					return ['li', {
+						style: 'font-size: ' + _this2._data.votes[vote] / _this2._data.total * 100 + '%;'
+					}, vote];
+				})];
+			}
+		}]);
+
+		return ResultsView;
+	}(View);
+
+/***/ },
+/* 205 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol ? "symbol" : typeof obj; };
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -26336,12 +26483,24 @@
 		_createClass(UsersView, [{
 			key: '_render',
 			value: function _render() {
+				var _this2 = this;
+
 				if (this._data.users) {
-					return ['ul', this._data.users.map(function (u) {
-						return ['li', u.name + ': ' + u.vote];
-					})];
+					var _ret = function () {
+						var num = _this2._data.users.length;
+						return {
+							v: ['ul', { className: 'arena' }, _this2._data.users.map(function (u, i) {
+								var angle = ((i - 1) / num + 1 / (num * 2)) * Math.PI;
+								return ['li', {
+									style: 'left: ' + (50 + Math.cos(angle) * 50) + '%; top: ' + (100 - Math.sin(angle) * 100) + '%;'
+								}, u.name + ': ' + (u.vote === undefined ? '' : u.vote)];
+							})]
+						};
+					}();
+
+					if ((typeof _ret === 'undefined' ? 'undefined' : _typeof(_ret)) === "object") return _ret.v;
 				}
-				return [];
+				return ['ul'];
 			}
 		}]);
 
