@@ -9,26 +9,29 @@ module.exports = class ResultsView extends View {
 	constructor(changes) {
 		super(changes, ['users'], stream => {
 			return stream
-				.map(data => data.users).filter()
-				.flatten(user => user.vote !== undefined ? [user.vote] : [])
-				.scan((counts, vote) => {
-					counts[vote] = counts[vote] ? counts[vote] + 1 : 1;
-					return counts;
-				}, {})
-				.map(votes => {
-					return {
-						votes: _.sortBy(_.keys(votes)),
-						total: _.reduce(votes, (total, vote) => total + vote, 0)
-					};
-				});
+				.map(data => data.users)
+				.filter()
+				.map(users => _.filter(users, user => user.vote !== undefined))
+				.map(users => users.map(user => user.vote))
+				.map(votes => votes.reduce((counts, vote) => _.assign(counts, {[vote]: counts[vote] ? counts[vote] + 1 : 1}), {}))
+				.map(counts => _.map(counts, (count, vote) => ({vote,count}) ))
+				.map(votes => ({
+					votes: _.sortBy(votes, 'vote'),
+					total: _.sumBy(votes, 'count')
+				}));
 		});
 	}
 
 	_render() {
-		return ['ul', this._data.votes.map(
-			vote => ['li', {
-				style: `font-size: ${(this._data.votes[vote] / this._data.total) * 100}%;`
-			}, vote]
-		)];
+		if(this._data.votes) {
+			return ['ul', {class: 'scoreboard'},
+				this._data.votes.map(
+					(vote, i) => ['li', {
+						style: `font-size: ${(vote.count / this._data.total) * 100}%;`
+					}, vote.vote]
+				)
+			];
+		}
+		return ['ul'];
 	}
 };

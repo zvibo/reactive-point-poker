@@ -3,10 +3,9 @@
 const domChanger = require('domchanger')
 	, Kefir = require('kefir')
 	, View = require('../lib/View')
+	, ArenaView = require('./ArenaView')
 	, DeckView = require('./DeckView')
  	, NameView = require('./NameView')
-	, ResultsView = require('./ResultsView')
- 	, UsersView = require('./UsersView')
 	;
 
 module.exports = class RootView extends View {
@@ -17,11 +16,8 @@ module.exports = class RootView extends View {
 		this.nameView = new NameView(changes);
 		this.events.plug(this.nameView.events);
 
-		this.usersView = new UsersView(changes);
-		this.events.plug(this.usersView.events);
-
-		this.resultsView = new ResultsView(changes);
-		this.events.plug(this.resultsView.events);
+		this.arenaView = new ArenaView(changes);
+		this.events.plug(this.arenaView.events);
 
 		this.deckView = new DeckView(changes);
 		this.events.plug(this.deckView.events);
@@ -30,10 +26,9 @@ module.exports = class RootView extends View {
 	}
 
 	_render() {
-		return ['div',
+		return ['div', {class: 'main'},
 			[this.nameView.component],
-			[this.usersView.component],
-			[this.resultsView.component],
+			[this.arenaView.component],
 			[this.deckView.component]
 		];
 	}

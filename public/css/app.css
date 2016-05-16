@@ -89,6 +89,9 @@ td {
 a img {
   border: none;
 }
+.main {
+  width: 40%;
+}
 .arena {
   position: relative;
   width: 100%;
@@ -101,4 +104,14 @@ a img {
   -o-transform: translate(-50%, -50%);
   -ms-transform: translate(-50%, -50%);
   transform: translate(-50%, -50%);
+}
+.scoreboard {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  -webkit-transform: translateX(-50%);
+  -moz-transform: translateX(-50%);
+  -o-transform: translateX(-50%);
+  -ms-transform: translateX(-50%);
+  transform: translateX(-50%);
 }

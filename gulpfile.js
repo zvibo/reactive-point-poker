@@ -12,7 +12,7 @@ gulp.task('css', function() {
 			 use: nib(),
 			 import: ['nib']
 		 }))
-		.pipe(gulp.dest('./public/css'))
+		.pipe(gulp.dest('public/css'))
 		.pipe(livereload());
 });
 
@@ -30,7 +30,7 @@ gulp.task('watch', function() {
 			.pipe(livereload());
 	});
 	gulp.watch('src/styl/**/*.styl', ['css']);
-	gulp.watch('src/client**/*.js', ['webpack']);
+	gulp.watch('src/client/**/*.js', ['webpack']);
 });
 
 gulp.task('build', ['css', 'webpack']);

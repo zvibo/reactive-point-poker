@@ -8,10 +8,10 @@ const path = require('path');
 // setup app
 const app = express();
 app.set('port', config('PORT'));
-app.set('views', __dirname+'/views');
+app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.normalize(__dirname+'/../../public')));
 app.use(compression());
 
 app.get('/', (req, res, next) => {
