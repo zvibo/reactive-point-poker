@@ -89,8 +89,13 @@ td {
 a img {
   border: none;
 }
-.main {
-  width: 40%;
+* {
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  box-sizing: border-box;
+}
+body {
+  font-family: sans-serif;
 }
 .arena {
   position: relative;
@@ -114,4 +119,34 @@ a img {
   -o-transform: translateX(-50%);
   -ms-transform: translateX(-50%);
   transform: translateX(-50%);
+}
+.card-wrapper {
+  width: 10%;
+  display: inline-block;
+}
+.card {
+  position: relative;
+  padding-bottom: 150%;
+  height: 0;
+}
+.card input {
+  display: none;
+}
+.card label {
+  position: absolute;
+  top: 2%;
+  left: 2%;
+  width: 96%;
+  height: 96%;
+  background-color: #48f;
+  color: #fff;
+  font-weight: bold;
+  text-align: center;
+  font-size: 5vw;
+  line-height: 13vw;
+  -webkit-border-radius: 1.5vw;
+  border-radius: 1.5vw;
+  border: 0.5vw solid #fff;
+  -webkit-box-shadow: 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.5);
+  box-shadow: 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.5);
 }

@@ -1,7 +1,13 @@
 global-reset()
 
+*
+	box-sizing border-box
+
+body
+	font-family sans-serif
+
 .main
-	width 40%
+	//width 40%
 
 .arena
 	position relative
@@ -17,3 +23,31 @@ global-reset()
 	bottom 0
 	left 50%
 	transform translateX(-50%)
+
+.card-wrapper
+	width 10%
+	display inline-block
+
+.card
+	position relative
+	padding-bottom 150%
+	height 0
+
+	input
+		display none
+
+	label
+		position absolute
+		top 2%
+		left 2%
+		width 96%
+		height 96%
+		background-color #48f
+		color #fff
+		font-weight bold
+		text-align center
+		font-size 5vw
+		line-height 13vw
+		border-radius 1.5vw
+		border 0.5vw solid #fff
+		box-shadow 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.5)

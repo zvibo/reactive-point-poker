@@ -10,19 +10,21 @@ module.exports = class DeckView extends View {
 
 	_render() {
 		if(this._data.votes) {
-			return ['ul', this._data.votes.map(v =>
-				['li',
-					['input', {
-						id: `vote-${v}`,
-						type: 'radio',
-						name: 'votes',
-						value: v,
-						checked: v === this._data.vote,
-						onchange: e => this._emit(e.target.value)
-					}],
-					['label', {
-						for: `vote-${v}`
-					}, v]
+			return ['ul', {class:'deck'}, this._data.votes.map(v =>
+				['li', {class:'card-wrapper'},
+					['div', {class:'card'},
+						['input', {
+							id: `vote-${v}`,
+							type: 'radio',
+							name: 'votes',
+							value: v,
+							checked: v === this._data.vote,
+							onchange: e => this._emit(e.target.value)
+						}],
+						['label', {
+							for: `vote-${v}`
+						}, v]
+					]
 				]
 			)];
 		}

@@ -26495,8 +26495,8 @@
 				var _this2 = this;
 	
 				if (this._data.votes) {
-					return ['ul', this._data.votes.map(function (v) {
-						return ['li', ['input', {
+					return ['ul', { class: 'deck' }, this._data.votes.map(function (v) {
+						return ['li', { class: 'card-wrapper' }, ['div', { class: 'card' }, ['input', {
 							id: 'vote-' + v,
 							type: 'radio',
 							name: 'votes',
@@ -26507,7 +26507,7 @@
 							}
 						}], ['label', {
 							for: 'vote-' + v
-						}, v]];
+						}, v]]];
 					})];
 				}
 				return ['ul'];
