@@ -31,7 +31,7 @@ app.get('/:room', (req, res, next) => {
 	next();
 });
 
-// redner the page
+// render the page
 app.use((req,res,next) => res.render('index', {data: res.locals.data}));
 
 // start the server

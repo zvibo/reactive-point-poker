@@ -13,7 +13,7 @@ module.exports = class ResultsView extends View {
 				.filter()
 				.map(users => _.filter(users, user => user.vote !== undefined))
 				.map(users => users.map(user => user.vote))
-				.map(votes => votes.reduce((counts, vote) => _.assign(counts, {[vote]: counts[vote] ? counts[vote] + 1 : 1}), {}))
+				.map(votes => _.countBy(votes))
 				.map(counts => _.map(counts, (count, vote) => ({vote,count}) ))
 				.map(votes => ({
 					votes: _.sortBy(votes, 'vote'),
