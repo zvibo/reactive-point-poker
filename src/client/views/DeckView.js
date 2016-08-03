@@ -15,11 +15,11 @@ module.exports = class DeckView extends View {
 					['div', {class:'card'},
 						['input', {
 							id: `vote-${v}`,
-							type: 'radio',
+							type: 'checkbox',
 							name: 'votes',
 							value: v,
 							checked: v === this._data.vote,
-							onchange: e => this._emit(e.target.value)
+							onchange: e => this._emit(e.target.checked ? e.target.value : '')
 						}],
 						['label', {
 							for: `vote-${v}`

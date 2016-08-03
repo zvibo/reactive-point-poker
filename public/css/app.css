@@ -140,6 +140,10 @@ body {
   height: 96%;
   background-color: #48f;
   color: #fff;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
   font-weight: bold;
   text-align: center;
   font-size: 5vw;
@@ -149,4 +153,7 @@ body {
   border: 0.5vw solid #fff;
   -webkit-box-shadow: 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.5);
   box-shadow: 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.5);
+}
+.card input:checked + label {
+  background-color: #f84;
 }

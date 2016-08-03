@@ -26266,12 +26266,12 @@
 					return ['ul', { class: 'deck' }, this._data.votes.map(function (v) {
 						return ['li', { class: 'card-wrapper' }, ['div', { class: 'card' }, ['input', {
 							id: 'vote-' + v,
-							type: 'radio',
+							type: 'checkbox',
 							name: 'votes',
 							value: v,
 							checked: v === _this2._data.vote,
 							onchange: function onchange(e) {
-								return _this2._emit(e.target.value);
+								return _this2._emit(e.target.checked ? e.target.value : '');
 							}
 						}], ['label', {
 							for: 'vote-' + v
