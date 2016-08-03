@@ -2,36 +2,40 @@
 
 const _ = require('lodash')
 	, ls = require('local-storage')
-	, Firebase = require('firebase')
+	, firebase = require('firebase/app')
 	, Kefir = require('kefir')
  	, RootView = require('./views/RootView')
 	;
 
-const default_deck = ['0','1','2','3','5','8','13','20','40','∞'];
+require("firebase/auth");
+require("firebase/database");
+
+const default_deck = ['0','1','2','3','5','8','13','20','40','100','?','∞'];
 
 module.exports = class Orchestrator {
 	constructor(data, document) {
-		this.db = new Firebase(data.db_url);
+		firebase.initializeApp(data.firebase);
+		this.db = firebase.database().ref();
+		const auth = firebase.auth();
+
 		this.changes = Kefir.pool();
 		this.view = new RootView(document.body, this.changes);
 
-		this.auth = Kefir.stream(e => this.db.onAuth(auth => auth ? e.emit(auth) : e.error()));
-		this.auth.onError(e => this.db.authAnonymously());
+		this.authUser = Kefir.stream(e => auth.onAuthStateChanged(u => u ? e.emit(u) : e.error()));
+		this.authUser.onError(e => auth.signInAnonymously());
 
 		Kefir.combine([
-			this.auth.filter().map(v => v.uid),
+			this.authUser.filter().map(v => v.uid),
 			Kefir.constant(data.room)
 		]).onValue((args => {
 			this._setup(...args);
 		}));
-
-		this.db.authAnonymously();
 	}
 
 	_plugChanges(reference, transform) {
 		this.changes.plug(
 			Kefir.fromEvents(reference, 'value').map(
-				snap => ({ [reference.key()]: transform ? transform(snap.val()) : snap.val() })
+				snap => ({ [snap.key]: transform ? transform(snap.val()) : snap.val() })
 			)
 		);
 	}

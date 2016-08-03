@@ -24,7 +24,12 @@ app.get('/', (req, res, next) => {
 
 app.get('/:room', (req, res, next) => {
 	res.locals.data = {
-		db_url: config('FIREBASE_URL'),
+		firebase: {
+			apiKey: config('FIREBASE_KEY'),
+			authDomain: config('FIREBASE_DOMAIN'),
+			databaseURL: config('FIREBASE_DBURL'),
+			storageBucket: config('FIREBASE_STORE')
+		},
 		view: 'room',
 		room: req.params.room
 	};
