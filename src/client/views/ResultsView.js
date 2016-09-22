@@ -16,7 +16,7 @@ module.exports = class ResultsView extends View {
 				.map(votes => _.countBy(votes))
 				.map(counts => _.map(counts, (count, vote) => ({vote,count}) ))
 				.map(votes => ({
-					votes: _.sortBy(votes, 'vote'),
+					votes: _.sortBy(votes, o => parseFloat(o.vote)),
 					total: _.sumBy(votes, 'count')
 				}));
 		});

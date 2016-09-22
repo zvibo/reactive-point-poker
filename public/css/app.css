@@ -97,10 +97,46 @@ a img {
 body {
   font-family: sans-serif;
 }
+.user {
+  position: relative;
+  margin: 0 1vw;
+}
+.user input {
+  font-size: 3vh;
+  font-weight: bold;
+  padding: 0 1vh;
+  display: block;
+  margin: 0;
+  color: #222;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  border: none;
+  border-bottom: 0.5vh solid #ccc;
+}
+.user input:focus {
+  outline: none;
+}
+.user input:placeholder-shown ~ label {
+  display: inline;
+}
+.user label {
+  font-size: 3vh;
+  font-weight: bold;
+  padding: 0 1vh;
+  display: none;
+  pointer-events: none;
+  position: absolute;
+  top: 1px;
+  color: #ccc;
+  font-style: italic;
+}
 .arena {
   position: relative;
   width: 100%;
-  padding-bottom: 50%;
+  padding-bottom: 56vh;
 }
 .player {
   position: absolute;
@@ -109,6 +145,7 @@ body {
   -o-transform: translate(-50%, -50%);
   -ms-transform: translate(-50%, -50%);
   transform: translate(-50%, -50%);
+  font-size: 1.5rem;
 }
 .scoreboard {
   position: absolute;
@@ -119,23 +156,41 @@ body {
   -o-transform: translateX(-50%);
   -ms-transform: translateX(-50%);
   transform: translateX(-50%);
+  font-size: 10vw;
 }
-.card-wrapper {
-  width: 10%;
+.scoreboard li {
   display: inline-block;
 }
-.card {
-  position: relative;
-  padding-bottom: 150%;
-  height: 0;
+.deck {
+  height: 40vh;
+  display: -webkit-box;
+  display: -moz-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: box;
+  display: flex;
+  -webkit-box-lines: multiple;
+  -moz-box-lines: multiple;
+  -o-box-lines: multiple;
+  -webkit-flex-wrap: wrap;
+  -ms-flex-wrap: wrap;
+  flex-wrap: wrap;
 }
-.card input {
+.deck .card {
+  width: 4rem;
+  -webkit-box-flex: 0;
+  -moz-box-flex: 0;
+  -o-box-flex: 0;
+  -ms-box-flex: 0;
+  box-flex: 0;
+  -webkit-flex-grow: 0;
+  flex-grow: 0;
+}
+.deck .card input {
   display: none;
 }
-.card label {
-  position: absolute;
-  top: 2%;
-  left: 2%;
+.deck .card label {
+  display: block;
   width: 96%;
   height: 96%;
   background-color: #48f;
@@ -145,15 +200,46 @@ body {
   -ms-user-select: none;
   user-select: none;
   font-weight: bold;
+  font-size: 1.5rem;
+  line-height: 1.75;
   text-align: center;
-  font-size: 5vw;
-  line-height: 13vw;
-  -webkit-border-radius: 1.5vw;
-  border-radius: 1.5vw;
-  border: 0.5vw solid #fff;
+  border-radius: 2%;
+  border: 0.4rem solid #fff;
   -webkit-box-shadow: 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.5);
   box-shadow: 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.5);
 }
-.card input:checked + label {
+.deck .card input:checked + label {
   background-color: #f84;
+}
+@media (min-width: 30rem) {
+  .deck .card {
+    width: 7rem;
+  }
+  .deck .card label {
+    font-size: 3rem;
+  }
+}
+@media (min-width: 50rem) {
+  .deck .card {
+    width: 8.5rem;
+  }
+  .deck .card label {
+    font-size: 4rem;
+  }
+}
+@media (min-width: 70rem) {
+  .deck .card {
+    width: 10rem;
+  }
+  .deck .card label {
+    font-size: 5rem;
+  }
+}
+@media (min-width: 90rem) {
+  .deck .card {
+    width: 11.5rem;
+  }
+  .deck .card label {
+    font-size: 6rem;
+  }
 }

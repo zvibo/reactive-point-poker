@@ -4,6 +4,9 @@ module.exports = {
 	output: {
 		filename: 'app.js'
 	},
+	externals: {
+		'window': 'window'
+	},
 	module: {
 		loaders: [
 			{

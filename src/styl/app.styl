@@ -9,49 +9,108 @@ body
 .main
 	//width 40%
 
+
+name-styling()
+	font-size 3vh
+	font-weight bold
+	padding 0 1vh
+
+.user
+	position relative
+	margin 0 1vw
+
+	input
+		name-styling()
+		display block
+		margin 0
+		color: #222
+		appearance none
+		box-shadow none
+		border none
+		border-radius none
+		border-bottom 0.5vh solid #ccc
+
+		&:focus
+			outline none
+
+		&:placeholder-shown ~ label
+			display inline
+
+	label
+		name-styling()
+		display none
+		pointer-events none
+		position absolute
+		top 1px
+		color #ccc
+		font-style italic
+
 .arena
 	position relative
 	width 100%
-	padding-bottom 50%
+	padding-bottom 56vh
 
 .player
 	position absolute
 	transform translate(-50%, -50%)
+	font-size 1.5rem
 
 .scoreboard
 	position absolute
 	bottom 0
 	left 50%
 	transform translateX(-50%)
+	font-size 10vw
 
-.card-wrapper
-	width 10%
-	display inline-block
+	li
+		display inline-block
 
-.card
-	position relative
-	padding-bottom 150%
-	height 0
+.deck
+	height 40vh
+	display flex
+	flex-wrap wrap
 
-	input
-		display none
+	.card
+		width 4rem
+		flex-grow 0
 
-	label
-		position absolute
-		top 2%
-		left 2%
-		width 96%
-		height 96%
-		background-color #48f
-		color #fff
-		user-select: none;
-		font-weight bold
-		text-align center
-		font-size 5vw
-		line-height 13vw
-		border-radius 1.5vw
-		border 0.5vw solid #fff
-		box-shadow 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.5)
+		input
+			display none
 
-	input:checked + label
-		background-color #f84
+		label
+			display block
+			width 96%
+			height 96%
+			background-color #48f
+			color #fff
+			user-select: none
+			font-weight bold
+			font-size 1.5rem
+			line-height 1.75
+			text-align center
+			border-radius 2%
+			border 0.4rem solid #fff
+			box-shadow 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.5)
+
+		input:checked + label
+			background-color #f84
+
+		@media (min-width 30rem)
+			width 7rem
+			label
+				font-size 3rem
+
+		@media (min-width 50rem)
+			width 8.5rem
+			label
+				font-size 4rem
+
+		@media (min-width 70rem)
+			width 10rem
+			label
+				font-size 5rem
+
+		@media (min-width 90rem)
+			width 11.5rem
+			label
+				font-size 6rem
