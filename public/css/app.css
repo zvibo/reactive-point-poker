@@ -94,17 +94,66 @@ a img {
   -moz-box-sizing: border-box;
   box-sizing: border-box;
 }
+html {
+  height: 100%;
+}
+@media (min-width: 30rem) {
+  html {
+    font-size: 1.25rem;
+  }
+}
+@media (min-width: 50rem) {
+  html {
+    font-size: 1.5rem;
+  }
+}
+@media (min-width: 70rem) {
+  html {
+    font-size: 1.75rem;
+  }
+}
+@media (min-width: 90rem) {
+  html {
+    font-size: 2rem;
+  }
+}
+@media (min-width: 90rem) {
+  html {
+    font-size: 2.25rem;
+  }
+}
 body {
+  height: 100%;
   font-family: sans-serif;
+}
+.main {
+  height: 100%;
+  display: -webkit-box;
+  display: -moz-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: box;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -moz-box-orient: vertical;
+  -o-box-orient: vertical;
+  -webkit-box-lines: single;
+  -moz-box-lines: single;
+  -o-box-lines: single;
+  -webkit-flex-flow: column nowrap;
+  -ms-flex-flow: column nowrap;
+  flex-flow: column nowrap;
+  -webkit-box-shadow: inset 0 0 20rem 0 rgba(0,0,0,0.15);
+  box-shadow: inset 0 0 20rem 0 rgba(0,0,0,0.15);
 }
 .user {
   position: relative;
-  margin: 0 1vw;
+  margin: 0.5rem;
 }
 .user input {
   font-size: 3vh;
   font-weight: bold;
-  padding: 0 1vh;
+  padding-left: 0.4rem;
   display: block;
   margin: 0;
   color: #222;
@@ -113,8 +162,9 @@ body {
   appearance: none;
   -webkit-box-shadow: none;
   box-shadow: none;
+  background: transparent;
   border: none;
-  border-bottom: 0.5vh solid #ccc;
+  border-bottom: 0.75vh solid #a3c7fb;
 }
 .user input:focus {
   outline: none;
@@ -125,26 +175,27 @@ body {
 .user label {
   font-size: 3vh;
   font-weight: bold;
-  padding: 0 1vh;
+  padding-left: 0.4rem;
   display: none;
   pointer-events: none;
   position: absolute;
   top: 1px;
-  color: #ccc;
+  color: #a3c7fb;
   font-style: italic;
 }
 .arena {
   position: relative;
   width: 100%;
-  padding-bottom: 56vh;
+  -webkit-box-flex: 1;
+  -moz-box-flex: 1;
+  -o-box-flex: 1;
+  -ms-box-flex: 1;
+  box-flex: 1;
+  -webkit-flex-grow: 1;
+  flex-grow: 1;
 }
 .player {
   position: absolute;
-  -webkit-transform: translate(-50%, -50%);
-  -moz-transform: translate(-50%, -50%);
-  -o-transform: translate(-50%, -50%);
-  -ms-transform: translate(-50%, -50%);
-  transform: translate(-50%, -50%);
   font-size: 1.5rem;
 }
 .scoreboard {
@@ -156,13 +207,12 @@ body {
   -o-transform: translateX(-50%);
   -ms-transform: translateX(-50%);
   transform: translateX(-50%);
-  font-size: 10vw;
+  font-size: 4.5rem;
 }
 .scoreboard li {
   display: inline-block;
 }
 .deck {
-  height: 40vh;
   display: -webkit-box;
   display: -moz-box;
   display: -webkit-flex;
@@ -175,6 +225,12 @@ body {
   -webkit-flex-wrap: wrap;
   -ms-flex-wrap: wrap;
   flex-wrap: wrap;
+  -webkit-box-pack: center;
+  -moz-box-pack: center;
+  -o-box-pack: center;
+  -ms-flex-pack: center;
+  -webkit-justify-content: center;
+  justify-content: center;
 }
 .deck .card {
   width: 4rem;
@@ -200,46 +256,14 @@ body {
   -ms-user-select: none;
   user-select: none;
   font-weight: bold;
-  font-size: 1.5rem;
-  line-height: 1.75;
+  font-size: 1.75rem;
+  line-height: 2;
   text-align: center;
   border-radius: 2%;
-  border: 0.4rem solid #fff;
-  -webkit-box-shadow: 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.5);
-  box-shadow: 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.5);
+  border: 0.2rem solid #fff;
+  -webkit-box-shadow: 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.25);
+  box-shadow: 0 0.05vw 0.35vw 0.05vw rgba(0,0,0,0.25);
 }
 .deck .card input:checked + label {
   background-color: #f84;
-}
-@media (min-width: 30rem) {
-  .deck .card {
-    width: 7rem;
-  }
-  .deck .card label {
-    font-size: 3rem;
-  }
-}
-@media (min-width: 50rem) {
-  .deck .card {
-    width: 8.5rem;
-  }
-  .deck .card label {
-    font-size: 4rem;
-  }
-}
-@media (min-width: 70rem) {
-  .deck .card {
-    width: 10rem;
-  }
-  .deck .card label {
-    font-size: 5rem;
-  }
-}
-@media (min-width: 90rem) {
-  .deck .card {
-    width: 11.5rem;
-  }
-  .deck .card label {
-    font-size: 6rem;
-  }
 }

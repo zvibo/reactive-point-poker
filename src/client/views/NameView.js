@@ -29,7 +29,7 @@ module.exports = class NameView extends View {
 				oninput: e => this._emit(e.target.value),
 				type: 'text',
 				placeholder: ' ',
-				style: `width: calc(${this.measure(value)}px + 2vh)`,
+				style: `width: calc(${this.measure(value)}px + 1rem)`,
 				value: this._data.name
 			}],
 			['label', {}, this.placeholder]

@@ -29679,9 +29679,11 @@
 						return {
 							v: ['ul', _this2._data.users.map(function (u, i) {
 								var angle = (i / num + 1 / (num * 2)) * Math.PI;
+								var left = 50 + Math.cos(angle) * 50;
+								var top = (1 - Math.sin(angle)) * 100;
 								return ['li', {
 									class: 'player',
-									style: 'left: ' + (50 + Math.cos(angle) * 50) + '%; top: ' + (1 - Math.sin(angle)) * 100 + '%;'
+									style: '\n\t\t\t\t\t\t\tleft: ' + left + '%;\n\t\t\t\t\t\t\ttop: ' + top + '%;\n\t\t\t\t\t\t\ttransform: translate(' + -left + '%, ' + -top + '%);\n\t\t\t\t\t\t'
 								}, u.name + ': ' + (u.vote === undefined ? '' : u.vote)];
 							})]
 						};
@@ -29810,7 +29812,7 @@
 					},
 					type: 'text',
 					placeholder: ' ',
-					style: 'width: calc(' + this.measure(value) + 'px + 2vh)',
+					style: 'width: calc(' + this.measure(value) + 'px + 1rem)',
 					value: this._data.name
 				}], ['label', {}, this.placeholder]];
 			}
