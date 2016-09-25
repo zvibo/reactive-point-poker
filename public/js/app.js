@@ -29628,7 +29628,9 @@
 				var _this2 = this;
 	
 				if (this._data.votes) {
-					return ['ul', { class: 'scoreboard' }, this._data.votes.map(function (vote, i) {
+					return ['ul', { class: 'scoreboard' }, this._data.votes.filter(function (v) {
+						return v !== undefined;
+					}).map(function (vote, i) {
 						return ['li', {
 							style: 'font-size: ' + vote.count / _this2._data.total * 100 + '%;'
 						}, vote.vote];

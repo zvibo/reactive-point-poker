@@ -7,7 +7,7 @@ var webpack = require('webpack-stream');
 var webpack_config = require('./webpack.config.js');
 
 gulp.task('css', function() {
-	return gulp.src('src/styl')
+	return gulp.src('src/styl/app.styl')
 		.pipe(stylus({
 			 use: nib(),
 			 import: ['nib']

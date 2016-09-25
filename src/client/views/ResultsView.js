@@ -25,7 +25,7 @@ module.exports = class ResultsView extends View {
 	_render() {
 		if(this._data.votes) {
 			return ['ul', {class: 'scoreboard'},
-				this._data.votes.map(
+				this._data.votes.filter(v=>v!==undefined).map(
 					(vote, i) => ['li', {
 						style: `font-size: ${(vote.count / this._data.total) * 100}%;`
 					}, vote.vote]
