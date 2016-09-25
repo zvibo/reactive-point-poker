@@ -1,0 +1,35 @@
+name-styling()
+	font-size 3vh
+	font-weight bold
+	padding-left 0.4rem
+
+.user
+	position relative
+	margin 0.5rem
+
+	input
+		name-styling()
+		display block
+		margin 0
+		color: #222
+		appearance none
+		box-shadow none
+		background transparent
+		border none
+		border-radius none
+		border-bottom 0.75vh solid #a3c7fb
+
+		&:focus
+			outline none
+
+		&:placeholder-shown ~ label
+			display inline
+
+	label
+		name-styling()
+		display none
+		pointer-events none
+		position absolute
+		top 1px
+		color #a3c7fb
+		font-style italic
