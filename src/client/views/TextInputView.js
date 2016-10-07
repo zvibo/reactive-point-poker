@@ -16,7 +16,7 @@ module.exports = class TextInputView extends View {
 
 	measure(v) {
 		let context = this.canvas.getContext("2d");
-		context.font = 'bold 1rem sans-serif';
+		context.font = 'bold 24pt sans-serif';
 		let metrics = context.measureText(v);
 		return metrics.width;
 	}
