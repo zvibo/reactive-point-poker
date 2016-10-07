@@ -44,18 +44,17 @@
 /* 0 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* globals window, document */
-	
 	'use strict';
 	
 	__webpack_require__(1);
 	
-	var Orchestrator = __webpack_require__(298);
+	var Orchestrator = __webpack_require__(298),
+	    w = __webpack_require__(312);
 	
-	var data = window.data || {};
+	var data = w.data || {};
 	
 	if (data.view === 'room') {
-		new Orchestrator(data, document);
+			new Orchestrator(data, w.document);
 	}
 
 /***/ },
@@ -8207,8 +8206,8 @@
 	    Kefir = __webpack_require__(305),
 	    RootView = __webpack_require__(306);
 	
-	__webpack_require__(315);
-	__webpack_require__(316);
+	__webpack_require__(318);
+	__webpack_require__(319);
 	
 	var default_deck = ['0', '1', '2', '3', '5', '8', '13', '20', '40', '100', '?', '∞'];
 	
@@ -8254,12 +8253,16 @@
 				var _this2 = this;
 	
 				this.room = this.db.child(room);
+				this.show_votes = this.room.child('show_votes');
+				this.topic = this.room.child('topic');
 				this.votes = this.room.child('votes');
 				this.users = this.room.child('users');
 				this.user = this.room.child('users/' + id);
 				this.userName = this.user.child('name');
 				this.userVote = this.user.child('vote');
 	
+				this._plugChanges(this.show_votes);
+				this._plugChanges(this.topic);
 				this._plugChanges(this.votes);
 				this._plugChanges(this.users, _.values);
 				this._plugChanges(this.userName);
@@ -8287,6 +8290,17 @@
 				}).map(function (e) {
 					return e['change:name'];
 				});
+				var revealEvents = events.filter(function (e) {
+					return _.has(e, 'click:reveal');
+				});
+				var resetEvents = events.filter(function (e) {
+					return _.has(e, 'click:reset');
+				});
+				var topicEvents = events.filter(function (e) {
+					return _.has(e, 'change:topic');
+				}).map(function (e) {
+					return e['change:topic'];
+				});
 				var voteEvents = events.filter(function (e) {
 					return _.has(e, 'change:vote');
 				}).map(function (e) {
@@ -8298,6 +8312,21 @@
 				}).onValue(function (name) {
 					_this3.userName.set(name);
 					ls(key, name);
+				});
+	
+				revealEvents.onValue(function (e) {
+					return _this3.show_votes.set(true);
+				});
+	
+				resetEvents.onValue(function (e) {
+					_this3.show_votes.set(false);
+					_this3.topic.set('');
+				});
+	
+				topicEvents.filter(function (topic) {
+					return _.isString(topic);
+				}).onValue(function (topic) {
+					return _this3.topic.set(topic);
 				});
 	
 				voteEvents.filter(function (vote) {
@@ -28909,8 +28938,8 @@
 	    Kefir = __webpack_require__(305),
 	    View = __webpack_require__(308),
 	    ArenaView = __webpack_require__(309),
-	    DeckView = __webpack_require__(312),
-	    NameView = __webpack_require__(313);
+	    DeckView = __webpack_require__(316),
+	    NameView = __webpack_require__(317);
 	
 	module.exports = function (_View) {
 		_inherits(RootView, _View);
@@ -29539,8 +29568,9 @@
 	
 	var Kefir = __webpack_require__(305),
 	    View = __webpack_require__(308),
-	    ResultsView = __webpack_require__(310),
-	    UsersView = __webpack_require__(311);
+	    ControlView = __webpack_require__(310),
+	    ResultsView = __webpack_require__(314),
+	    UsersView = __webpack_require__(315);
 	
 	module.exports = function (_View) {
 		_inherits(ArenaView, _View);
@@ -29548,12 +29578,15 @@
 		function ArenaView(changes) {
 			_classCallCheck(this, ArenaView);
 	
-			//this.events = Kefir.pool();
+			var _this = _possibleConstructorReturn(this, (ArenaView.__proto__ || Object.getPrototypeOf(ArenaView)).call(this, changes, ['show_votes']));
 	
-			var _this = _possibleConstructorReturn(this, (ArenaView.__proto__ || Object.getPrototypeOf(ArenaView)).call(this, changes));
+			_this.events = Kefir.pool();
 	
 			_this.usersView = new UsersView(changes);
 			//this.events.plug(this.usersView.events);
+	
+			_this.controlView = new ControlView(changes);
+			_this.events.plug(_this.controlView.events);
 	
 			_this.resultsView = new ResultsView(changes);
 			//this.events.plug(this.resultsView.events);
@@ -29563,7 +29596,7 @@
 		_createClass(ArenaView, [{
 			key: '_render',
 			value: function _render() {
-				return ['div', { class: 'arena' }, [this.usersView.component], [this.resultsView.component]];
+				return ['div', { class: 'arena ' + (this._data.show_votes ? '' : 'hide_votes') }, [this.usersView.component], [this.controlView.component], [this.resultsView.component]];
 			}
 		}]);
 	
@@ -29572,6 +29605,182 @@
 
 /***/ },
 /* 310 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var Kefir = __webpack_require__(305),
+	    View = __webpack_require__(308),
+	    IconButtonView = __webpack_require__(311),
+	    TextInputView = __webpack_require__(313);
+	
+	module.exports = function (_View) {
+		_inherits(ControlView, _View);
+	
+		function ControlView(changes) {
+			_classCallCheck(this, ControlView);
+	
+			var _this = _possibleConstructorReturn(this, (ControlView.__proto__ || Object.getPrototypeOf(ControlView)).call(this, changes, ['issue']));
+	
+			_this.issueInput = new TextInputView(changes, 'topic');
+			_this.resetButton = new IconButtonView(changes, 'refresh', 'reset');
+			_this.revealButton = new IconButtonView(changes, 'eye', 'reveal');
+			_this.events = Kefir.merge([_this.issueInput.events, _this.resetButton.events.map(function (e) {
+				return { 'click:reset': true };
+			}), _this.revealButton.events.map(function (e) {
+				return { 'click:reveal': true };
+			})]);
+			return _this;
+		}
+	
+		_createClass(ControlView, [{
+			key: '_render',
+			value: function _render() {
+				return ['div', { class: 'control' }, [this.issueInput.component], ['div', { class: 'buttons' }, [this.resetButton.component], [this.revealButton.component]]];
+			}
+		}]);
+	
+		return ControlView;
+	}(View);
+
+/***/ },
+/* 311 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var View = __webpack_require__(308),
+	    w = __webpack_require__(312);
+	
+	module.exports = function (_View) {
+		_inherits(IconButtonView, _View);
+	
+		function IconButtonView(changes, name, className) {
+			_classCallCheck(this, IconButtonView);
+	
+			var _this = _possibleConstructorReturn(this, (IconButtonView.__proto__ || Object.getPrototypeOf(IconButtonView)).call(this, changes));
+	
+			_this.name = name;
+			_this.className = className || name;
+			_this.events = _this.events.map(function (vote) {
+				return { 'click': _this.name };
+			});
+			return _this;
+		}
+	
+		_createClass(IconButtonView, [{
+			key: '_render',
+			value: function _render() {
+				var _this2 = this;
+	
+				var elem = w.document.createElement('span');
+				elem.innerHTML = '<svg><use xlink:href="/img/icons.svg#' + this.name + '" /></svg>';
+	
+				return ['button', {
+					class: this.className,
+					onclick: function onclick(e) {
+						return _this2._emit(true);
+					}
+				}, elem];
+			}
+		}]);
+	
+		return IconButtonView;
+	}(View);
+
+/***/ },
+/* 312 */
+/***/ function(module, exports) {
+
+	module.exports = window;
+
+/***/ },
+/* 313 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+	
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+	
+	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+	
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+	
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+	
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+	
+	var View = __webpack_require__(308),
+	    w = __webpack_require__(312);
+	
+	module.exports = function (_View) {
+		_inherits(TextInputView, _View);
+	
+		function TextInputView(changes, name, className, placeholder) {
+			_classCallCheck(this, TextInputView);
+	
+			var _this = _possibleConstructorReturn(this, (TextInputView.__proto__ || Object.getPrototypeOf(TextInputView)).call(this, changes, [name]));
+	
+			_this.name = name;
+			_this.className = className || name;
+			_this.placeholder = placeholder || name;
+			_this.events = _this.events.map(function (val) {
+				return _defineProperty({}, 'change:' + _this.name, val);
+			});
+			_this.canvas = w.document.createElement('canvas');
+			return _this;
+		}
+	
+		_createClass(TextInputView, [{
+			key: 'measure',
+			value: function measure(v) {
+				var context = this.canvas.getContext("2d");
+				context.font = 'bold 1rem sans-serif';
+				var metrics = context.measureText(v);
+				return metrics.width;
+			}
+		}, {
+			key: '_render',
+			value: function _render() {
+				var _this2 = this;
+	
+				var value = this._data[this.name] ? this._data[this.name] : this.placeholder;
+	
+				return ['div', {
+					class: 'text-input ' + this.className
+				}, ['input', {
+					oninput: function oninput(e) {
+						return _this2._emit(e.target.value);
+					},
+					type: 'text',
+					placeholder: ' ',
+					style: 'width: calc(' + this.measure(value) + 'px + 1rem)',
+					value: this._data[this.name]
+				}], ['label', {}, this.placeholder]];
+			}
+		}]);
+	
+		return TextInputView;
+	}(View);
+
+/***/ },
+/* 314 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29644,7 +29853,7 @@
 	}(View);
 
 /***/ },
-/* 311 */
+/* 315 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29667,7 +29876,7 @@
 		function UsersView(changes) {
 			_classCallCheck(this, UsersView);
 	
-			return _possibleConstructorReturn(this, (UsersView.__proto__ || Object.getPrototypeOf(UsersView)).call(this, changes, ['users']));
+			return _possibleConstructorReturn(this, (UsersView.__proto__ || Object.getPrototypeOf(UsersView)).call(this, changes, ['users', 'show_votes']));
 		}
 	
 		_createClass(UsersView, [{
@@ -29686,7 +29895,9 @@
 								return ['li', {
 									class: 'player',
 									style: '\n\t\t\t\t\t\t\tleft: ' + left + '%;\n\t\t\t\t\t\t\ttop: ' + top + '%;\n\t\t\t\t\t\t\ttransform: translate(' + -left + '%, ' + -top + '%);\n\t\t\t\t\t\t'
-								}, u.name + ': ' + (u.vote === undefined ? '' : u.vote)];
+								}, u.name + ': ', ['span', {
+									class: _this2._data.show_votes ? '' : 'hidden'
+								}, '' + (u.vote === undefined ? '' : u.vote)]];
 							})]
 						};
 					}();
@@ -29701,7 +29912,7 @@
 	}(View);
 
 /***/ },
-/* 312 */
+/* 316 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29759,12 +29970,10 @@
 	}(View);
 
 /***/ },
-/* 313 */
+/* 317 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 	
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 	
@@ -29772,65 +29981,22 @@
 	
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 	
-	var View = __webpack_require__(308),
-	    w = __webpack_require__(314);
+	var TextInputView = __webpack_require__(313);
 	
-	module.exports = function (_View) {
-		_inherits(NameView, _View);
+	module.exports = function (_TextInputView) {
+		_inherits(NameView, _TextInputView);
 	
 		function NameView(changes) {
 			_classCallCheck(this, NameView);
 	
-			var _this = _possibleConstructorReturn(this, (NameView.__proto__ || Object.getPrototypeOf(NameView)).call(this, changes, ['name']));
-	
-			_this.events = _this.events.map(function (name) {
-				return { 'change:name': name };
-			});
-			_this.canvas = w.document.createElement('canvas');
-			_this.placeholder = 'name';
-			return _this;
+			return _possibleConstructorReturn(this, (NameView.__proto__ || Object.getPrototypeOf(NameView)).call(this, changes, 'name', 'user', 'name'));
 		}
 	
-		_createClass(NameView, [{
-			key: 'measure',
-			value: function measure(v) {
-				var context = this.canvas.getContext("2d");
-				context.font = 'bold 3vh sans-serif';
-				var metrics = context.measureText(v);
-				return metrics.width;
-			}
-		}, {
-			key: '_render',
-			value: function _render() {
-				var _this2 = this;
-	
-				var value = this._data.name ? this._data.name : this.placeholder;
-	
-				return ['div', {
-					class: 'user'
-				}, ['input', {
-					oninput: function oninput(e) {
-						return _this2._emit(e.target.value);
-					},
-					type: 'text',
-					placeholder: ' ',
-					style: 'width: calc(' + this.measure(value) + 'px + 1rem)',
-					value: this._data.name
-				}], ['label', {}, this.placeholder]];
-			}
-		}]);
-	
 		return NameView;
-	}(View);
+	}(TextInputView);
 
 /***/ },
-/* 314 */
-/***/ function(module, exports) {
-
-	module.exports = window;
-
-/***/ },
-/* 315 */
+/* 318 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var firebase = __webpack_require__(304);
@@ -30055,7 +30221,7 @@
 
 
 /***/ },
-/* 316 */
+/* 319 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var firebase = __webpack_require__(304);

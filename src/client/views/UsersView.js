@@ -4,7 +4,7 @@ const View = require('../lib/View');
 
 module.exports = class UsersView extends View {
 	constructor(changes) {
-		super(changes, ['users']);
+		super(changes, ['users', 'show_votes']);
 	}
 
 	_render() {
@@ -22,7 +22,14 @@ module.exports = class UsersView extends View {
 							top: ${top}%;
 							transform: translate(${-left}%, ${-top}%);
 						`
-					}, `${u.name}: ${u.vote === undefined ? '' : u.vote}`];
+					},
+						`${u.name}: `,
+						['span', {
+							class: this._data.show_votes ? '' : 'hidden'
+						},
+							`${u.vote === undefined ? '' : u.vote}`
+						]
+					];
 				}
 			)];
 		}

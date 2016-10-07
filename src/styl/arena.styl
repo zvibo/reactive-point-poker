@@ -6,6 +6,19 @@
 .player
 	position absolute
 	font-size 1.5rem
+	span
+		display inline-block
+		position relative
+		vertical-align text-bottom
+		&.hidden:after
+			content ''
+			position absolute
+			background-color #333
+			width 3rem
+			left 0
+			top 0
+			bottom 0
+
 
 .scoreboard
 	position absolute
@@ -13,6 +26,9 @@
 	left 50%
 	transform translateX(-50%)
 	font-size 4.5rem
+
+	.hide_votes &
+		display none
 
 	li
 		display inline-block
@@ -22,3 +38,58 @@
 
 		&:last-of-type::after
 			content ''
+
+.control
+	position absolute
+	left 50%
+	top 40%
+	transform translate(-50%, -50%)
+
+	.text-input
+		min-width 4.5rem
+		input
+			margin 0 auto
+		input ~ label
+			padding-left 0
+			left 50%
+			transform translate(-50%)
+
+	.buttons
+		width 100%
+		text-align center
+
+	button
+		position relative
+		border-width 0
+		border-radius 50%
+		width 1.8rem
+		height 1.8rem
+		margin 0.1rem 0.25rem
+
+		svg
+			position absolute
+			transform translate(-50%, -50%)
+			width 60%
+			height 60%
+			fill #fff
+
+		&.reset
+			background-color #f44
+			svg
+				left 46.5%
+				top 48.5%
+
+		&.reveal
+			background-color: #4f4
+			svg
+				left 50%
+				top 50%
+
+		&:focus
+			outline none
+
+		&:active
+			&.reset
+				background-color #d22
+			&.reveal
+				background-color #2d2

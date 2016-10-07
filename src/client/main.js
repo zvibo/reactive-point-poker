@@ -1,13 +1,13 @@
-/* globals window, document */
-
 'use strict';
 
 require("babel-polyfill");
 
-const Orchestrator = require('./Orchestrator');
+const Orchestrator = require('./Orchestrator')
+		, w = require('window')
+		;
 
-const data = window.data || {};
+const data = w.data || {};
 
 if(data.view === 'room') {
-	new Orchestrator(data, document);
+	new Orchestrator(data, w.document);
 }

@@ -42,12 +42,16 @@ module.exports = class Orchestrator {
 
 	_setup(id, room) {
 		this.room = this.db.child(room);
+		this.show_votes = this.room.child('show_votes');
+		this.topic = this.room.child('topic');
 		this.votes = this.room.child('votes');
 		this.users = this.room.child('users');
 		this.user = this.room.child(`users/${id}`);
 		this.userName = this.user.child('name');
 		this.userVote = this.user.child('vote');
 
+		this._plugChanges(this.show_votes);
+		this._plugChanges(this.topic);
 		this._plugChanges(this.votes);
 		this._plugChanges(this.users, _.values);
 		this._plugChanges(this.userName);
@@ -64,6 +68,9 @@ module.exports = class Orchestrator {
 	_setupActions(events) {
 		const key = `${this.storeKey}/name`;
 		const nameEvents = events.filter(e => _.has(e,'change:name')).map(e => e['change:name']);
+		const revealEvents = events.filter(e => _.has(e, 'click:reveal'));
+		const resetEvents = events.filter(e => _.has(e, 'click:reset'));
+		const topicEvents = events.filter(e => _.has(e,'change:topic')).map(e => e['change:topic']);
 		const voteEvents = events.filter(e => _.has(e,'change:vote')).map(e => e['change:vote']);
 
 		Kefir.merge([
@@ -74,6 +81,15 @@ module.exports = class Orchestrator {
 			this.userName.set(name);
 			ls(key, name);
 		});
+
+		revealEvents.onValue(e => this.show_votes.set(true));
+
+		resetEvents.onValue(e => {
+			this.show_votes.set(false);
+			this.topic.set('');
+		});
+
+		topicEvents.filter(topic => _.isString(topic)).onValue(topic => this.topic.set(topic));
 
 		voteEvents.filter(vote => _.isString(vote)).onValue(vote => this.userVote.set(vote));
 	}

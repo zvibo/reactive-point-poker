@@ -1,0 +1,35 @@
+text-input-styling()
+	font-size 1rem
+	font-weight bold
+	padding-left 0.4rem
+
+.text-input
+	position relative
+	margin 0.5rem
+
+	input[type="text"]
+		text-input-styling()
+		display block
+		margin 0
+		color: #222
+		appearance none
+		box-shadow none
+		background transparent
+		border none
+		border-radius none
+		border-bottom 0.1vh solid #333
+
+		&:focus
+			outline none
+
+		& ~ label
+			text-input-styling()
+			display none
+			pointer-events none
+			position absolute
+			top 1px
+			color #a3b0c1
+			font-style italic
+
+		&:placeholder-shown ~ label
+			display inline
