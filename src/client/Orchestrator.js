@@ -84,10 +84,18 @@ module.exports = class Orchestrator {
 
 		revealEvents.onValue(e => this.show_votes.set(true));
 
-		resetEvents.onValue(e => {
-			this.show_votes.set(false);
-			this.topic.set('');
-		});
+		Kefir.fromEvents(this.users, 'value')
+			.map(snap => snap.val())
+			.map(users => _.mapValues(users, user => {
+				user.vote = '';
+				return user;
+			}))
+			.sampledBy(resetEvents)
+			.onValue(users => {
+				this.show_votes.set(false);
+				this.topic.set('');
+				this.users.set(users);
+			});
 
 		topicEvents.filter(topic => _.isString(topic)).onValue(topic => this.topic.set(topic));
 

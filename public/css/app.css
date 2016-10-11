@@ -151,7 +151,7 @@ body {
   margin: 0.5rem;
 }
 .text-input input[type="text"] {
-  font-size: 1rem;
+  font-size: 24pt;
   font-weight: bold;
   padding-left: 0.4rem;
   display: block;
@@ -170,7 +170,7 @@ body {
   outline: none;
 }
 .text-input input[type="text"] ~ label {
-  font-size: 1rem;
+  font-size: 24pt;
   font-weight: bold;
   padding-left: 0.4rem;
   display: none;
