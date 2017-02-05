@@ -14,8 +14,8 @@ module.exports = class ControlView extends View {
 		this.revealButton = new IconButtonView(changes, 'eye', 'reveal');
 		this.events = Kefir.merge([
 			this.issueInput.events,
-			this.resetButton.events.map(e => ({'click:reset': true})),
-			this.revealButton.events.map(e => ({'click:reveal': true}))
+			this.resetButton.events.map(() => ({'click:reset': true})),
+			this.revealButton.events.map(() => ({'click:reveal': true}))
 		]);
 	}
 

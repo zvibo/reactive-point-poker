@@ -16,8 +16,13 @@ app.use(compression());
 
 app.get('/', (req, res, next) => {
 	res.locals.data = {
-		db_url: config('FIREBASE_URL'),
-		view: 'root'
+		firebase: {
+			apiKey: config('FIREBASE_KEY'),
+			authDomain: config('FIREBASE_DOMAIN'),
+			databaseURL: config('FIREBASE_DBURL'),
+			storageBucket: config('FIREBASE_STORE')
+		},
+		view: 'lobby'
 	};
 	next();
 });

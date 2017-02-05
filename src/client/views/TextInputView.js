@@ -10,12 +10,12 @@ module.exports = class TextInputView extends View {
 		this.name = name;
 		this.className = className || name;
 		this.placeholder = placeholder || name;
-		this.events = this.events.map(val => ({[`change:${this.name}`]: val}));
+		this.events = this.events.map(val => ({[`set:${this.name}`]: val}));
 		this.canvas = w.document.createElement('canvas');
 	}
 
 	measure(v) {
-		let context = this.canvas.getContext("2d");
+		let context = this.canvas.getContext('2d');
 		context.font = 'bold 24pt sans-serif';
 		let metrics = context.measureText(v);
 		return metrics.width;
@@ -25,8 +25,8 @@ module.exports = class TextInputView extends View {
 		const value = this._data[this.name] ? this._data[this.name] : this.placeholder;
 
 		return ['div', {
-				class: `text-input ${this.className}`
-			},
+			class: `text-input ${this.className}`
+		},
 			['input', {
 				oninput: e => this._emit(e.target.value),
 				type: 'text',

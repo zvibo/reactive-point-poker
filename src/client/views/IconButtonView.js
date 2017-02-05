@@ -9,7 +9,7 @@ module.exports = class IconButtonView extends View {
 		super(changes);
 		this.name = name;
 		this.className = className || name;
-		this.events = this.events.map(vote => ({'click': this.name}));
+		this.events = this.events.map(() => ({'click': this.name}));
 	}
 
 	_render() {
@@ -18,7 +18,7 @@ module.exports = class IconButtonView extends View {
 
 		return ['button', {
 			class: this.className,
-			onclick: e => this._emit(true)
+			onclick: () => this._emit(true)
 		},
 			elem
 		];

@@ -22,5 +22,5 @@ module.exports = {
 	// plugins: [
 	// 	new webpack.optimize.UglifyJsPlugin()
 	// ],
-	devtool: 'source-map'
+	devtool: 'cheap-source-map'
 };

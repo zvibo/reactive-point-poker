@@ -1,7 +1,6 @@
 'use strict';
 
 const _ = require('lodash')
-	, Kefir = require('kefir')
 	, View = require('../lib/View')
 	;
 
@@ -11,6 +10,7 @@ module.exports = class ResultsView extends View {
 			return stream
 				.map(data => data.users)
 				.filter()
+				.map(_.values)
 				.map(users => _.filter(users, user => user.vote !== undefined))
 				.map(users => users.map(user => user.vote))
 				.map(votes => _.countBy(votes))
@@ -26,7 +26,7 @@ module.exports = class ResultsView extends View {
 		if(this._data.votes) {
 			return ['ul', {class: 'scoreboard'},
 				this._data.votes.filter(v=>v!==undefined).map(
-					(vote, i) => ['li', {
+					vote => ['li', {
 						style: `font-size: ${(vote.count / this._data.total) * 100}%;`
 					}, vote.vote]
 				)

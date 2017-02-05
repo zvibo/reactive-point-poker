@@ -1,35 +1,29 @@
 'use strict';
 
-const domChanger = require('domchanger')
-	, Kefir = require('kefir')
+const Kefir = require('kefir')
 	, View = require('../lib/View')
-	, ArenaView = require('./ArenaView')
-	, DeckView = require('./DeckView')
- 	, NameView = require('./NameView')
+	, LobbyView = require('./LobbyView')
+	, RoomView = require('./RoomView')
 	;
 
 module.exports = class RootView extends View {
-	constructor(owner, changes) {
-		super(changes);
+	constructor(changes) {
+		super(changes, ['view']);
 		this.events = Kefir.pool();
 
-		this.nameView = new NameView(changes);
-		this.events.plug(this.nameView.events);
+		this.lobbyView = new LobbyView(changes);
+		this.events.plug(this.lobbyView.events);
 
-		this.arenaView = new ArenaView(changes);
-		this.events.plug(this.arenaView.events);
-
-		this.deckView = new DeckView(changes);
-		this.events.plug(this.deckView.events);
-
-		domChanger(this.component, owner).update();
+		this.roomView = new RoomView(changes);
+		this.events.plug(this.roomView.events);
 	}
 
 	_render() {
-		return ['div', {class: 'main'},
-			[this.nameView.component],
-			[this.arenaView.component],
-			[this.deckView.component]
-		];
+		if(this._data.view === 'lobby') {
+			return [this.lobbyView.component];
+		}
+		else {
+			return [this.roomView.component];
+		}
 	}
 };

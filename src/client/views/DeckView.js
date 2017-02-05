@@ -5,7 +5,7 @@ const View = require('../lib/View');
 module.exports = class DeckView extends View {
 	constructor(changes) {
 		super(changes, ['votes', 'vote']);
-		this.events = this.events.map(vote => ({'change:vote': vote}));
+		this.events = this.events.map(vote => ({'set:vote': vote}));
 	}
 
 	_render() {
