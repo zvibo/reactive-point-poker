@@ -17,10 +17,13 @@ module.exports = data => {
 		events.plug(actor(changes));
 	}
 
-	const changeEvents = ['name', 'show_votes', 'topic', 'users', 'vote', 'votes'];
+	const changeEvents = ['name', 'show_votes', 'topic', 'users', 'vote'];
 	for (const key of changeEvents) {
 		changes.plug(event$(events, `change:${key}`).map(val => ({[key]:val})));
 	}
+
+	changes.plug(event$(events, 'change:votes').filter().map(votes => ({votes})));
+	changes.plug(event$(events, 'change:votes').filter(_.isNull).map(() => ({votes: data.defaultVotes})));
 
 	changes.plug(
 		event$(events, 'change:users')

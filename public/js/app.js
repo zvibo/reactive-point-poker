@@ -8223,7 +8223,7 @@
 			}
 		}
 
-		var changeEvents = ['name', 'show_votes', 'topic', 'users', 'vote', 'votes'];
+		var changeEvents = ['name', 'show_votes', 'topic', 'users', 'vote'];
 		var _iteratorNormalCompletion2 = true;
 		var _didIteratorError2 = false;
 		var _iteratorError2 = undefined;
@@ -8254,6 +8254,13 @@
 				}
 			}
 		}
+
+		changes.plug(event$(events, 'change:votes').filter().map(function (votes) {
+			return { votes: votes };
+		}));
+		changes.plug(event$(events, 'change:votes').filter(_.isNull).map(function () {
+			return { votes: data.defaultVotes };
+		}));
 
 		changes.plug(event$(events, 'change:users').sampledBy(event$(events, 'click:reset')).filter().map(function (users) {
 			return _.mapValues(users, function (user) {
@@ -30010,6 +30017,9 @@
 		event$(changes, 'users').filter(_.isObject).onValue(function (users) {
 			return roomRef ? roomRef.update({ users: users }) : roomRef;
 		});
+		event$(changes, 'votes').filter(_.isArray).onValue(function (votes) {
+			return roomRef ? roomRef.update({ votes: votes }) : roomRef;
+		});
 		event$(changes, 'vote').filter(_.isString).onValue(function (vote) {
 			return userRef ? userRef.update({ vote: vote }) : userRef;
 		});
@@ -30095,9 +30105,11 @@
 
 /***/ },
 /* 319 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
+
+	var _ = __webpack_require__(299);
 
 	module.exports = function (source, name) {
 	  return source.filter(function (e) {

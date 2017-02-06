@@ -35,6 +35,7 @@ module.exports = changes => {
 	event$(changes, 'show_votes').filter(_.isBoolean).onValue(show_votes => roomRef ? roomRef.update({show_votes}) : roomRef);
 	event$(changes, 'topic').filter(_.isString).onValue(topic => roomRef ? roomRef.update({topic}) : roomRef);
 	event$(changes, 'users').filter(_.isObject).onValue(users => roomRef ? roomRef.update({users}) : roomRef);
+	event$(changes, 'votes').filter(_.isArray).onValue(votes => roomRef ? roomRef.update({votes}) : roomRef);
 	event$(changes, 'vote').filter(_.isString).onValue(vote => userRef ? userRef.update({vote}) : userRef);
 
 	// init room

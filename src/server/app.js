@@ -22,6 +22,7 @@ app.get('/', (req, res, next) => {
 			databaseURL: config('FIREBASE_DBURL'),
 			storageBucket: config('FIREBASE_STORE')
 		},
+		defaultVotes: config('default_votes'),
 		view: 'lobby'
 	};
 	next();
@@ -35,6 +36,7 @@ app.get('/:room', (req, res, next) => {
 			databaseURL: config('FIREBASE_DBURL'),
 			storageBucket: config('FIREBASE_STORE')
 		},
+		defaultVotes: config('default_votes'),
 		view: 'room',
 		room: req.params.room
 	};
