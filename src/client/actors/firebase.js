@@ -59,9 +59,7 @@ export default changes => {
 				room.child('show_votes'),
 				room.child('users'),
 				room.child('topic'),
-				room.child('votes'),
-				user.child('name'),
-				user.child('vote')
+				room.child('votes')
 			];
 
 			// return new streams

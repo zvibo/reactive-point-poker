@@ -30196,7 +30196,7 @@
 			refs.map(function (ref) {
 				return ref.off();
 			});
-			refs = [room.child('show_votes'), room.child('users'), room.child('topic'), room.child('votes'), user.child('name'), user.child('vote')];
+			refs = [room.child('show_votes'), room.child('users'), room.child('topic'), room.child('votes')];
 
 			// return new streams
 			return _kefir2.default.constant(refs).flatten().flatMap(function (ref) {
@@ -30770,26 +30770,18 @@
 
 	var _event$2 = _interopRequireDefault(_event$);
 
-	var _kefir = __webpack_require__(302);
-
-	var _kefir2 = _interopRequireDefault(_kefir);
-
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
-
-	var roomKey = function roomKey(room) {
-		return 'pk/' + room + '/name';
-	};
-
 	exports.default = function (changes) {
-		// store name at pk/$room/name
-		_kefir2.default.combine([(0, _event$2.default)(changes, 'room').filter(_lodash2.default.isString).map(roomKey), (0, _event$2.default)(changes, 'name').filter(_lodash2.default.isString)]).sampledBy((0, _event$2.default)(changes, 'name')).skipDuplicates(_lodash2.default.isEqual).onValue(function (streams) {
-			return _localStorage2.default.apply(undefined, _toConsumableArray(streams));
+		// store name at pk/name
+		(0, _event$2.default)(changes, 'name').filter(_lodash2.default.isString).skipDuplicates().onValue(function (name) {
+			return (0, _localStorage2.default)('pk/name', name);
 		});
 
 		// emit name when room changes
-		return (0, _event$2.default)(changes, 'room').filter().map(roomKey).map(_localStorage2.default).map(function (name) {
+		return (0, _event$2.default)(changes, 'room').filter().skipDuplicates().map(function () {
+			return (0, _localStorage2.default)('pk/name');
+		}).map(function (name) {
 			return { 'change:name': name };
 		});
 	};
