@@ -1,14 +1,11 @@
-'use strict';
-
-const _ = require('lodash')
-	, ls = require('local-storage')
-	, event$ = require('../lib/event$')
-	, Kefir = require('kefir')
-	;
+import _ from 'lodash';
+import ls from 'local-storage';
+import event$ from '../lib/event$';
+import Kefir from 'kefir';
 
 const roomKey = room => `pk/${room}/name`;
 
-module.exports = changes => {
+export default changes => {
 	// store name at pk/$room/name
 	Kefir.combine([
 		event$(changes, 'room')
@@ -17,6 +14,7 @@ module.exports = changes => {
 		event$(changes, 'name')
 			.filter(_.isString)
 	]).sampledBy(event$(changes, 'name'))
+		.skipDuplicates(_.isEqual)
 		.onValue(streams => ls(...streams));
 
 	// emit name when room changes

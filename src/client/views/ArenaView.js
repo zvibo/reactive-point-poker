@@ -1,13 +1,10 @@
-'use strict';
+import Kefir from 'kefir';
+import View from '../lib/View';
+import ControlView from './ControlView';
+import ResultsView from './ResultsView';
+import UsersView from './UsersView';
 
-const Kefir = require('kefir')
-	, View = require('../lib/View')
-	, ControlView = require('./ControlView')
-	, ResultsView = require('./ResultsView')
-	, UsersView = require('./UsersView')
-	;
-
-module.exports = class ArenaView extends View {
+export default class ArenaView extends View {
 	constructor(changes) {
 		super(changes, ['show_votes']);
 		this.events = Kefir.pool();
@@ -29,4 +26,4 @@ module.exports = class ArenaView extends View {
 			[this.resultsView.component]
 		];
 	}
-};
+}

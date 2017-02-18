@@ -1,12 +1,9 @@
-'use strict';
+import _ from 'lodash';
+import Kefir from 'kefir';
 
-const _ = require('lodash')
-	, Kefir = require('kefir')
-	;
-
-module.exports = class View {
-	constructor(changes = Kefir.never(), keys = [], modifier = s => s) {
-		this.events = Kefir.stream(this._subscribe.bind(this));
+export default class View {
+	constructor(changes = Kefir.never(), keys = [], modifier = s => s, events) {
+		this.events = events || Kefir.stream(this._subscribe.bind(this));
 
 		this.changes =
 			modifier(
@@ -19,11 +16,14 @@ module.exports = class View {
 				v => this._refresh(v)
 			);
 
-		this._data = {};
-
 		this.component = this.component.bind(this);
+		Object.defineProperty(this.component, 'name', { writable: true });
+		this.component.name = this.constructor.name;
+
 		this._clean = this._clean.bind(this);
 		this._render = this._render.bind(this);
+
+		this._data = {};
 	}
 
 	component(emit, refresh) {
@@ -35,11 +35,11 @@ module.exports = class View {
 	}
 
 	_clean() {
-		this._emitter.end();
+		this._emitter && this._emitter.end();
 	}
 
 	_emit(v) {
-		this._emitter.emit(v);
+		this._emitter && this._emitter.emit(v);
 	}
 
 	_refresh(data) {
@@ -54,4 +54,4 @@ module.exports = class View {
 	_subscribe(emitter) {
 		this._emitter = emitter;
 	}
-};
+}

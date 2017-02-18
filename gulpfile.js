@@ -12,9 +12,9 @@ var gulp = require('gulp')
 gulp.task('css', function() {
 	return gulp.src('src/styl/app.styl')
 		.pipe(stylus({
-			 use: nib(),
-			 import: ['nib']
-		 }))
+			use: nib(),
+			import: ['nib']
+		}))
 		.pipe(gulp.dest('public/css'))
 		.pipe(livereload());
 });

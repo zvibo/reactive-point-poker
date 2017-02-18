@@ -1,13 +1,10 @@
-'use strict';
+import w from 'window';
+import domChanger from 'domchanger';
+import RoomView from '../views/RoomView';
 
-const w = require('window')
-	, domChanger = require('domchanger')
-	, RootView = require('../views/RootView')
-	;
-
-module.exports = changes => {
+export default changes => {
 	// init domChanger
-	const root = new RootView(changes);
+	const root = new RoomView(changes);
 	domChanger(root.component, w.document.body).update();
 	return root.events;
 };

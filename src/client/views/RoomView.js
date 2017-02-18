@@ -1,16 +1,12 @@
-'use strict';
+import Kefir from 'kefir';
+import View from '../lib/View';
+import ArenaView from './ArenaView';
+import DeckView from './DeckView';
+import NameView from './NameView';
 
-const Kefir = require('kefir')
-	, View = require('../lib/View')
-	, ArenaView = require('./ArenaView')
-	, DeckView = require('./DeckView')
-	, NameView = require('./NameView')
-	;
-
-module.exports = class RootView extends View {
+export default class RoomView extends View {
 	constructor(changes) {
-		super(changes);
-		this.events = Kefir.pool();
+		super(changes, ['room'], s=>s, Kefir.pool());
 
 		this.nameView = new NameView(changes);
 		this.events.plug(this.nameView.events);
@@ -23,10 +19,10 @@ module.exports = class RootView extends View {
 	}
 
 	_render() {
-		return ['div', {class: 'main'},
+		return ['div', {class: `main ${this._data.room ? '' : 'lobby'}`},
 			[this.nameView.component],
 			[this.arenaView.component],
 			[this.deckView.component]
 		];
 	}
-};
+}

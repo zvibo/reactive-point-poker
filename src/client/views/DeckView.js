@@ -1,8 +1,6 @@
-'use strict';
+import View from '../lib/View';
 
-const View = require('../lib/View');
-
-module.exports = class DeckView extends View {
+export default class DeckView extends View {
 	constructor(changes) {
 		super(changes, ['votes', 'vote']);
 		this.events = this.events.map(vote => ({'set:vote': vote}));
@@ -28,4 +26,4 @@ module.exports = class DeckView extends View {
 		}
 		return ['ul'];
 	}
-};
+}

@@ -146,9 +146,13 @@ body {
   -webkit-box-shadow: inset 0 0 20rem 0 rgba(0,0,0,0.15);
   box-shadow: inset 0 0 20rem 0 rgba(0,0,0,0.15);
 }
+.main.lobby > :not(.where) {
+  display: none;
+}
 .text-input {
   position: relative;
-  margin: 0.5rem;
+  margin: 0.5rem 0;
+  display: inline-block;
 }
 .text-input input[type="text"] {
   font-size: 24pt;
@@ -182,6 +186,21 @@ body {
 }
 .text-input input[type="text"]:placeholder-shown ~ label {
   display: inline;
+}
+.where {
+  margin-left: 0.5rem;
+}
+.where span:nth-child(even) {
+  color: #ccc;
+}
+.where span:nth-child(odd) {
+  font-weight: bold;
+  color: #888;
+  margin: 0 0.2rem;
+}
+.lobby .where div:first-of-type,
+.lobby .where span:first-of-type {
+  display: none;
 }
 .arena {
   position: relative;

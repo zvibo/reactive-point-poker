@@ -1,10 +1,7 @@
-'use strict';
+import View from '../lib/View';
+import w from 'window';
 
-const View = require('../lib/View')
-		, w = require('window')
-		;
-
-module.exports = class IconButtonView extends View {
+export default class IconButtonView extends View {
 	constructor(changes, name, className) {
 		super(changes);
 		this.name = name;
@@ -23,4 +20,4 @@ module.exports = class IconButtonView extends View {
 			elem
 		];
 	}
-};
+}

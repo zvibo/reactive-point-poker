@@ -14,31 +14,16 @@ app.set('view engine', 'ejs');
 app.use(express.static(path.normalize(path.join(__dirname, '../../public'))));
 app.use(compression());
 
-app.get('/', (req, res, next) => {
+app.get('*', (req, res, next) => {
 	res.locals.data = {
+		env: config('NODE_ENV'),
 		firebase: {
 			apiKey: config('FIREBASE_KEY'),
 			authDomain: config('FIREBASE_DOMAIN'),
 			databaseURL: config('FIREBASE_DBURL'),
 			storageBucket: config('FIREBASE_STORE')
 		},
-		defaultVotes: config('default_votes'),
-		view: 'lobby'
-	};
-	next();
-});
-
-app.get('/:room', (req, res, next) => {
-	res.locals.data = {
-		firebase: {
-			apiKey: config('FIREBASE_KEY'),
-			authDomain: config('FIREBASE_DOMAIN'),
-			databaseURL: config('FIREBASE_DBURL'),
-			storageBucket: config('FIREBASE_STORE')
-		},
-		defaultVotes: config('default_votes'),
-		view: 'room',
-		room: req.params.room
+		defaultVotes: config('default_votes')
 	};
 	next();
 });

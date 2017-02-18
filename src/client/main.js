@@ -1,9 +1,6 @@
-'use strict';
+import 'babel-polyfill';
 
-require('babel-polyfill');
-
-const conductor = require('./conductor')
-		, w = require('window')
-		;
+import w from 'window';
+import conductor from './conductor';
 
 conductor(w.data || {});

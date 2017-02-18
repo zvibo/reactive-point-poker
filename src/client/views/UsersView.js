@@ -1,8 +1,5 @@
-'use strict';
-
-const _ = require('lodash')
-	, View = require('../lib/View')
-	;
+import _ from 'lodash';
+import View from '../lib/View';
 
 module.exports = class UsersView extends View {
 	constructor(changes) {

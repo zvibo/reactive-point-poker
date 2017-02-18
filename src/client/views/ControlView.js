@@ -1,12 +1,9 @@
-'use strict';
+import Kefir from 'kefir';
+import View from '../lib/View';
+import IconButtonView from './IconButtonView';
+import TextInputView from './TextInputView';
 
-const Kefir = require('kefir')
-		, View = require('../lib/View')
-		, IconButtonView = require('./IconButtonView')
-		, TextInputView = require('./TextInputView')
-		;
-
-module.exports = class ControlView extends View {
+export default class ControlView extends View {
 	constructor(changes) {
 		super(changes, ['issue']);
 		this.issueInput = new TextInputView(changes, 'topic');
@@ -28,4 +25,4 @@ module.exports = class ControlView extends View {
 			]
 		];
 	}
-};
+}

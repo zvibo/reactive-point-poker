@@ -48,10 +48,17 @@
 
 	__webpack_require__(1);
 
-	var conductor = __webpack_require__(298),
-	    w = __webpack_require__(302);
+	var _window = __webpack_require__(298);
 
-	conductor(w.data || {});
+	var _window2 = _interopRequireDefault(_window);
+
+	var _conductor = __webpack_require__(299);
+
+	var _conductor2 = _interopRequireDefault(_conductor);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	(0, _conductor2.default)(_window2.default.data || {});
 
 /***/ },
 /* 1 */
@@ -8180,118 +8187,121 @@
 
 /***/ },
 /* 298 */
+/***/ function(module, exports) {
+
+	module.exports = window;
+
+/***/ },
+/* 299 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
+	var _lodash = __webpack_require__(300);
+
+	var _lodash2 = _interopRequireDefault(_lodash);
+
+	var _window = __webpack_require__(298);
+
+	var _window2 = _interopRequireDefault(_window);
+
+	var _kefir = __webpack_require__(302);
+
+	var _kefir2 = _interopRequireDefault(_kefir);
+
+	var _dom = __webpack_require__(303);
+
+	var _dom2 = _interopRequireDefault(_dom);
+
+	var _firebase = __webpack_require__(315);
+
+	var _firebase2 = _interopRequireDefault(_firebase);
+
+	var _storage = __webpack_require__(320);
+
+	var _storage2 = _interopRequireDefault(_storage);
+
+	var _url = __webpack_require__(324);
+
+	var _url2 = _interopRequireDefault(_url);
+
+	var _event$ = __webpack_require__(319);
+
+	var _event$2 = _interopRequireDefault(_event$);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-	var _ = __webpack_require__(299),
-	    dom = __webpack_require__(301),
-	    firebase = __webpack_require__(317),
-	    storage = __webpack_require__(322),
-	    event$ = __webpack_require__(319),
-	    Kefir = __webpack_require__(305);
+	exports.default = function (data) {
+		var events = _kefir2.default.pool();
+		var changes = _kefir2.default.pool();
 
-	module.exports = function (data) {
-		var events = Kefir.pool();
-		var changes = Kefir.pool();
+		// activate (and log) the pools
+		events.onAny(function (e) {
+			return data.env === 'development' && console.log('%ci: ' + JSON.stringify(e[e.type]), 'background:#fef');
+		});
+		changes.onAny(function (e) {
+			return data.env === 'development' && console.log('%co: ' + JSON.stringify(e[e.type]), 'background:#eff');
+		});
 
-		var actors = [dom, firebase, storage];
-		var _iteratorNormalCompletion = true;
-		var _didIteratorError = false;
-		var _iteratorError = undefined;
+		// simple change event to state change passthrough
+		changes.plug(_kefir2.default.constant(['name', 'show_votes', 'topic', 'users', 'vote']).flatten().flatMap(function (key) {
+			return (0, _event$2.default)(events, 'change:' + key).map(function (val) {
+				return _defineProperty({}, key, val);
+			});
+		}));
 
-		try {
-			for (var _iterator = actors[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-				var actor = _step.value;
+		// simple set event to state change passthrough
+		changes.plug(_kefir2.default.constant(['name', 'topic', 'vote']).flatten().flatMap(function (key) {
+			return (0, _event$2.default)(events, 'set:' + key).map(function (val) {
+				return _defineProperty({}, key, val);
+			});
+		}));
 
-				events.plug(actor(changes));
-			}
-		} catch (err) {
-			_didIteratorError = true;
-			_iteratorError = err;
-		} finally {
-			try {
-				if (!_iteratorNormalCompletion && _iterator.return) {
-					_iterator.return();
-				}
-			} finally {
-				if (_didIteratorError) {
-					throw _iteratorError;
-				}
-			}
-		}
+		// set room on submit
+		changes.plug((0, _event$2.default)(events, 'submit:room').skipDuplicates().map(function (room) {
+			return { room: room };
+		}));
 
-		var changeEvents = ['name', 'show_votes', 'topic', 'users', 'vote'];
-		var _iteratorNormalCompletion2 = true;
-		var _didIteratorError2 = false;
-		var _iteratorError2 = undefined;
-
-		try {
-			var _loop = function _loop() {
-				var key = _step2.value;
-
-				changes.plug(event$(events, 'change:' + key).map(function (val) {
-					return _defineProperty({}, key, val);
-				}));
-			};
-
-			for (var _iterator2 = changeEvents[Symbol.iterator](), _step2; !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
-				_loop();
-			}
-		} catch (err) {
-			_didIteratorError2 = true;
-			_iteratorError2 = err;
-		} finally {
-			try {
-				if (!_iteratorNormalCompletion2 && _iterator2.return) {
-					_iterator2.return();
-				}
-			} finally {
-				if (_didIteratorError2) {
-					throw _iteratorError2;
-				}
-			}
-		}
-
-		changes.plug(event$(events, 'change:votes').filter().map(function (votes) {
+		// set deck
+		changes.plug((0, _event$2.default)(events, 'change:votes').filter().map(function (votes) {
 			return { votes: votes };
 		}));
-		changes.plug(event$(events, 'change:votes').filter(_.isNull).map(function () {
+		changes.plug((0, _event$2.default)(events, 'change:votes').filter(_lodash2.default.isNull).map(function () {
 			return { votes: data.defaultVotes };
 		}));
 
-		changes.plug(event$(events, 'change:users').sampledBy(event$(events, 'click:reset')).filter().map(function (users) {
-			return _.mapValues(users, function (user) {
-				return _.set(user, 'vote', '');
+		// reset action
+		changes.plug((0, _event$2.default)(events, 'change:users').sampledBy((0, _event$2.default)(events, 'click:reset')).filter().map(function (users) {
+			return _lodash2.default.mapValues(users, function (user) {
+				return _lodash2.default.set(user, 'vote', '');
 			});
 		}).map(function (users) {
 			return { show_votes: false, topic: '', users: users };
 		}));
-		changes.plug(Kefir.constant({ show_votes: true }).sampledBy(event$(events, 'click:reveal')));
 
-		changes.plug(event$(events, 'set:name').map(function (name) {
-			return { name: name };
-		}));
-		changes.plug(event$(events, 'set:room').map(function (room) {
-			return { room: room };
-		}));
-		changes.plug(event$(events, 'set:topic').map(function (topic) {
-			return { topic: topic };
-		}));
-		changes.plug(event$(events, 'set:vote').map(function (vote) {
-			return { vote: vote };
+		// reveal action
+		changes.plug(_kefir2.default.constant({ show_votes: true }).sampledBy((0, _event$2.default)(events, 'click:reveal')));
+
+		// connect actors
+		events.plug(_kefir2.default.constant([_dom2.default, _firebase2.default, _storage2.default, _url2.default]).flatten().flatMap(function (actor) {
+			return actor(changes);
 		}));
 
-		changes.plug(Kefir.constant({
+		// initial state
+		changes.plug(_kefir2.default.constant({
 			firebase: data.firebase,
-			room: data.room
+			room: _window2.default.location.pathname.substr(1)
 		}));
 	};
 
 /***/ },
-/* 299 */
+/* 300 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_RESULT__;/* WEBPACK VAR INJECTION */(function(global, module) {/**
@@ -25277,10 +25287,10 @@
 	  }
 	}.call(this));
 
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(300)(module)))
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }()), __webpack_require__(301)(module)))
 
 /***/ },
-/* 300 */
+/* 301 */
 /***/ function(module, exports) {
 
 	module.exports = function(module) {
@@ -25296,576 +25306,7 @@
 
 
 /***/ },
-/* 301 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var w = __webpack_require__(302),
-	    domChanger = __webpack_require__(303),
-	    RootView = __webpack_require__(304);
-
-	module.exports = function (changes) {
-		// init domChanger
-		var root = new RootView(changes);
-		domChanger(root.component, w.document.body).update();
-		return root.events;
-	};
-
-/***/ },
 /* 302 */
-/***/ function(module, exports) {
-
-	module.exports = window;
-
-/***/ },
-/* 303 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*
-	Design of internal tree used for diffing algorithm:
-	==================================================
-
-	- collection of nodes is object with keys being unique name of node.
-	- items can be component, text node, tag node, or raw element:
-	  - text nodes contain {text, el} (el is only when instanced)
-	  - tag nodes contain {tagName, el, props, children} (el is only when instaced)
-	  - raw elements simply contain {el}
-	  - components in the new tree contain {component, data}, but once instanced
-	    contain {append, destroy, handleEvent, update} or the component instance itself.
-
-	Unique Name Algorithm:
-	=====================
-
-	Unique names are given to each node so that we can track their movement and
-	be smart about reusing nodes when changes happen.
-
-	- Names are only unique to their parent node, not globally.
-	- Components are named by their constructor name and optional user provided key
-	- Elements are named by their tag name and optional user provided ref
-	- Text nodes are simply named "text" and raw nodes are "el".
-	- When a duplicate name happens, the second one gets "-2" appended, then "-3"
-	  and so on.
-	*/
-
-	( // Module boilerplate to support commonjs, browser globals and AMD.
-	  (typeof module === "object" && typeof module.exports === "object" && function (m) { module.exports = m(); }) ||
-	  ("function" === "function" && function (m) { !(__WEBPACK_AMD_DEFINE_FACTORY__ = (m), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); }) ||
-	  (function (m) { window.domChanger = m(); })
-	)(function () {
-	"use strict";
-
-	function forEach(obj, fn) {
-	  var keys = Object.keys(obj);
-	  for (var i = 0, l = keys.length; i < l; ++i) {
-	    var key = keys[i];
-	    fn(key, obj[key]);
-	  }
-	}
-
-	function createComponent(component, parent, owner) {
-	  var refs = {};
-	  var data = [];
-	  var roots = {};
-	  // console.log("new " + component.name);
-	  var out = component(emit, refresh, refs);
-	  var render = out.render;
-	  var on = out.on || {};
-	  var cleanup = out.cleanup || noop;
-	  var instance = {
-	    update: update,
-	    destroy: destroy,
-	    append: append,
-	    handleEvent: handleEvent
-	  };
-
-	  // Add comment for this component.
-	  var comment = document.createComment(component.name);
-	  parent.appendChild(comment);
-
-	  return instance;
-
-	  function append() {
-	    comment.parentNode.appendChild(comment);
-	    forEach(roots, function (key, node) {
-	      if (node.el) parent.appendChild(node.el);
-	      else if (node.append) node.append();
-	    });
-	  }
-
-	  function destroy() {
-	    // console.log("destroy", component.name);
-	    comment.parentNode.removeChild(comment);
-	    comment = null;
-	    cleanRoots(roots);
-	    delete instance.update;
-	    delete instance.destroy;
-	    delete instance.handleEvent;
-	    cleanup();
-	  }
-
-	  function cleanRoots(roots) {
-	    forEach(roots, function (key, node) {
-	      if (node.el) node.el.parentNode.removeChild(node.el);
-	      else if (node.destroy) node.destroy();
-	      delete roots[key];
-	      if (node.children) cleanRoots(node.children);
-	    });
-	  }
-
-	  function refresh() {
-	    if (!render) return;
-	    var tree = nameNodes(render.apply(null, data));
-	    apply(parent, tree, roots);
-	  }
-
-	  function removeItem(item) {
-	    if (item.destroy) item.destroy();
-	    else item.el.parentNode.removeChild(item.el);
-	  }
-
-	  function apply(top, newTree, oldTree) {
-
-	    // Delete any items that don't exist in the new tree
-	    forEach(oldTree, function (key, item) {
-	      if (!newTree[key]) {
-	        removeItem(item);
-	        delete oldTree[key];
-	        // console.log("removed " + key)
-	      }
-	    });
-
-	    var oldKeys = Object.keys(oldTree);
-	    var newKeys = Object.keys(newTree);
-	    var index, length, key;
-	    for (index = 0, length = newKeys.length; index < length; index++) {
-	      key = newKeys[index];
-	      // console.group(key);
-	      var item = oldTree[key];
-	      var newItem = newTree[key];
-
-	      // Handle text nodes
-	      if ("text" in newItem) {
-	        if (item) {
-	          // Update the text if it's changed.
-	          if (newItem.text !== item.text) {
-	            item.el.nodeValue = item.text = newItem.text;
-	            // console.log("updated")
-	          }
-	        }
-	        else {
-	          // Otherwise create a new text node.
-	          item = oldTree[key] = {
-	            text: newItem.text,
-	            el: document.createTextNode(newItem.text)
-	          };
-	          top.appendChild(item.el);
-	          // console.log("created")
-	        }
-	      }
-
-	      // Handle tag nodes
-	      else if (newItem.tagName) {
-	        // Create a new item if there isn't one
-	        if (!item) {
-	          item = oldTree[key] = {
-	            tagName: newItem.tagName,
-	            el: document.createElement(newItem.tagName),
-	            children: {}
-	          };
-	          if (newItem.ref) {
-	            item.ref = newItem.ref;
-	            refs[item.ref] = item.el;
-	          }
-	          top.appendChild(item.el);
-	          // console.log("created")
-	        }
-	        // Update the tag
-	        if (!item.props) item.props = {};
-	        updateAttrs(item.el, newItem.props, item.props);
-
-	        if (newItem.children) {
-	          apply(item.el, newItem.children, item.children);
-	        }
-	      }
-
-	      // Handle component nodes
-	      else if (newItem.component) {
-	        if (!item) {
-	          item = oldTree[key] = createComponent(newItem.component, top, instance);
-	          item.append();
-	          // console.log("created")
-	        }
-	        item.update.apply(null, newItem.data);
-	      }
-
-	      else if (newItem.el) {
-	        if (item) {
-	          item = removeItem(item);
-	        }
-	        item = oldTree[key] = {
-	          el: newItem.el
-	        };
-	        top.appendChild(item.el);
-	      }
-
-	      else {
-	        console.error(newItem);
-	        throw new Error("This shouldn't happen");
-	      }
-
-	      // console.groupEnd(key);
-	    }
-
-	    // Check to see if set needs re-ordering
-	    var needOrder = false;
-	    for (index = 0, length = newKeys.length; index < length; index++) {
-	      key = newKeys[index];
-	      var oldIndex = oldKeys.indexOf(key);
-	      if (oldIndex >= 0 && oldIndex !== index) {
-	        needOrder = true;
-	        break;
-	      }
-	    }
-
-	    // If it does, sort the set and virtual tree to match the new order
-	    if (needOrder) {
-	      forEach(newTree, function (key) {
-	        var item = oldTree[key];
-	        delete oldTree[key];
-	        oldTree[key] = item;
-	        if (item.append) item.append();
-	        else top.appendChild(item.el);
-	      });
-	      // console.log("reordered")
-	    }
-
-	  }
-
-	  function update() {
-	    data = slice.call(arguments);
-	    refresh();
-	  }
-
-	  function emit() {
-	    if (!owner) throw new Error("Can't emit events from top-level component");
-	    owner.handleEvent.apply(null, arguments);
-	  }
-
-	  function handleEvent(name) {
-	    var handler = on[name];
-	    if (!handler) {
-	      if (owner) return owner.handleEvent.apply(null, arguments);
-	      throw new Error("Missing event handler for " + name);
-	    }
-	    handler.apply(null, slice.call(arguments, 1));
-	  }
-
-	}
-
-
-	// Given raw JSON-ML data, return a virtual DOM tree with auto-named nodes.
-	function nameNodes(raw) {
-	  var tree = {};
-	  processItem(tree, raw);
-	  return tree;
-
-	  function processItem(nodes, item) {
-
-	    // Figure out what type of item this is and normalize data a bit.
-	    var type, first, tag;
-	    if (typeof item === "number") {
-	      item = String(item);
-	    }
-	    if (typeof item === "string") {
-	      type = "text";
-	    }
-	    else if (Array.isArray(item)) {
-	      if (!item.length) return;
-	      first = item[0];
-	      if (typeof first === "function") {
-	        type = "component";
-	      }
-	      else if (typeof first === "string") {
-	        tag = processTag(item);
-	        type = "element";
-	      }
-	      else {
-	        item.forEach(function (child) {
-	          processItem(nodes, child);
-	        });
-	        return;
-	      }
-	    }
-	    else if (item instanceof HTMLElement) {
-	      type = "el";
-	    }
-	    else {
-	      console.error(item);
-	      throw new TypeError("Invalid item");
-	    }
-
-	    // Find a unique name for this local namespace.
-	    var i = 1;
-	    var subType = type == "element" ? tag.name : type == "component" ? item[0].name : type;
-	    var id = type === "element" ? tag.ref : type === "component" ? item.key : null;
-	    var newPath = id ? subType + "-" + id : subType;
-	    while (nodes[newPath]) newPath = subType + "-" + (id || "") + (++i);
-
-	    var node;
-
-	    if (type === "text") {
-	      nodes[newPath] = {
-	        text: item
-	      };
-	      return;
-	    }
-
-	    if (type === "el") {
-	      nodes[newPath] = {
-	        el: item
-	      };
-	      return;
-	    }
-
-	    if (type === "element") {
-	      var sub = {};
-	      node = nodes[newPath] = {
-	        tagName: tag.name,
-	      };
-	      if (!isEmpty(tag.props)) node.props = tag.props;
-	      if (tag.ref) node.ref = tag.ref;
-	      tag.body.forEach(function (child) {
-	        processItem(sub, child);
-	      });
-	      if (!isEmpty(sub)) node.children = sub;
-	      return;
-	    }
-
-	    if (type === "component") {
-	      nodes[newPath] = {
-	        component: item[0],
-	        data: item.slice(1)
-	      };
-	      return;
-	    }
-
-	    throw new TypeError("Invalid type");
-	  }
-
-	}
-
-	// Parse and process a JSON-ML element.
-	function processTag(array) {
-	  var props = {}, body;
-	  if (array[1] && array[1].constructor === Object) {
-	    var keys = Object.keys(array[1]);
-	    for (var i = 0, l = keys.length; i < l; i++) {
-	      var key = keys[i];
-	      props[key] = array[1][key];
-	    }
-	    body = array.slice(2);
-	  }
-	  else {
-	    body = array.slice(1);
-	  }
-	  var string = array[0];
-	  var name = string.match(TAG_MATCH);
-	  var tag = {
-	    name: name ? name[0] : "div",
-	    props: props,
-	    body: body
-	  };
-	  var classes = string.match(CLASS_MATCH);
-	  if (classes) {
-	    classes = classes.map(stripFirst).join(" ");
-	    if (props.class) props.class += " " + classes;
-	    else props.class = classes;
-	  }
-	  var id = string.match(ID_MATCH);
-	  if (id) {
-	    props.id = stripFirst(id[0]);
-	  }
-	  var ref = string.match(REF_MATCH);
-	  if (ref) {
-	    tag.ref = stripFirst(ref[0]);
-	  }
-	  return tag;
-	}
-
-	function updateAttrs(node, attrs, old) {
-
-	  // Remove any attributes that were in the old version, but not in the new.
-	  Object.keys(old).forEach(function (key) {
-	    // Don't remove attributes still live.
-	    if (attrs && attrs[key]) return;
-
-	    // Special case to remove event handlers
-	    if (key.substr(0, 2) === "on") {
-	      var eventName = key.substring(2);
-	      node.removeEventListener(eventName, old[key]);
-	    }
-
-	    // All other attributes remove normally including "style"
-	    else {
-	      node.removeAttribute(key);
-	    }
-	    // console.log("unset " + key)
-
-	    // Remove from virtual DOM too.
-	    old[key] = null;
-	  });
-
-	  // Add in new attributes and update existing ones.
-	  if (attrs) forEach(attrs, function (key, value) {
-	    var oldValue = old[key];
-
-	    // Special case for object form styles
-	    if (key === "style" && typeof value === "object") {
-	      // Remove old version if it was in string form before.
-	      if (typeof oldValue === "string") {
-	        node.removeAttribute("style");
-	        // console.log("unset style")
-	      }
-	      // Make sure the virtual DOM is in object form.
-	      if (!oldValue || typeof oldValue !== "object") {
-	        oldValue = old.style = {};
-	      }
-	      updateStyle(node.style, value, oldValue);
-	      return;
-	    }
-
-	    // Skip any unchanged values.
-	    if (oldValue === value) return;
-
-	    // Record new value in virtual tree
-	    old[key] = value;
-
-	    // Add event listeners for attributes starting with "on"
-	    if (key.substr(0, 2) === "on") {
-	      var eventName = key.substring(2);
-	      // If an event listener is updated, remove the old one.
-	      if (oldValue) {
-	        node.removeEventListener(eventName, oldValue);
-	      }
-	      // Add the new listener
-	      node.addEventListener(eventName, value);
-	    }
-	    else if (key === "checked" && node.nodeName === "INPUT") {
-	      if (node.checked === value) return;
-	      node.checked = value;
-	    }
-	    // different way of updating the (actual) value for inputs
-	    else if (key === 'value' && node.nodeName === 'INPUT') {
-	      // Make sure the value is actually different.
-	      if (node.value === value) return;
-	      node.value = value;
-	    }
-	    // Handle boolean values as valueless attributes
-	    else if (typeof value === "boolean") {
-	      if (value) node.setAttribute(key, key);
-	      else node.removeAttribute(key);
-	    }
-	    // handle normal attribute
-	    else {
-	      node.setAttribute(key, value);
-	    }
-
-	    // console.log("set " + key)
-
-	  });
-
-	}
-
-	function updateStyle(style, attrs, old) {
-	  // Remove any old styles that aren't there anymore
-	  forEach(old, function (key) {
-	    if (attrs && attrs[key]) return;
-	    old[key] = style[key] = "";
-	    // console.log("unstyled " + key)
-	  });
-	  if (attrs) forEach(attrs, function (key, value) {
-	    var oldValue = old[key];
-	    if (oldValue === value) return;
-	    old[key] = style[key] = attrs[key];
-	    // console.log("styled " + key)
-	  });
-	}
-
-	function stripFirst(part) {
-	  return part.substring(1);
-	}
-
-	function isEmpty(obj) {
-	  return !Object.keys(obj).length;
-	}
-
-	var CLASS_MATCH = /\.[^.#$]+/g,
-	    ID_MATCH = /#[^.#$]+/,
-	    REF_MATCH = /\$[^.#$]+/,
-	    TAG_MATCH = /^[^.#$]+/;
-
-	var slice = [].slice;
-	function noop() {}
-
-	return createComponent;
-
-	});
-
-
-/***/ },
-/* 304 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-	var Kefir = __webpack_require__(305),
-	    View = __webpack_require__(306),
-	    LobbyView = __webpack_require__(307),
-	    RoomView = __webpack_require__(308);
-
-	module.exports = function (_View) {
-		_inherits(RootView, _View);
-
-		function RootView(changes) {
-			_classCallCheck(this, RootView);
-
-			var _this = _possibleConstructorReturn(this, (RootView.__proto__ || Object.getPrototypeOf(RootView)).call(this, changes, ['view']));
-
-			_this.events = Kefir.pool();
-
-			_this.lobbyView = new LobbyView(changes);
-			_this.events.plug(_this.lobbyView.events);
-
-			_this.roomView = new RoomView(changes);
-			_this.events.plug(_this.roomView.events);
-			return _this;
-		}
-
-		_createClass(RootView, [{
-			key: '_render',
-			value: function _render() {
-				if (this._data.view === 'lobby') {
-					return [this.lobbyView.component];
-				} else {
-					return [this.roomView.component];
-				}
-			}
-		}]);
-
-		return RootView;
-	}(View);
-
-/***/ },
-/* 305 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {/*! Kefir.js v3.5.2
@@ -29343,46 +28784,660 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
+/* 303 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
+	var _window = __webpack_require__(298);
+
+	var _window2 = _interopRequireDefault(_window);
+
+	var _domchanger = __webpack_require__(304);
+
+	var _domchanger2 = _interopRequireDefault(_domchanger);
+
+	var _RoomView = __webpack_require__(305);
+
+	var _RoomView2 = _interopRequireDefault(_RoomView);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	exports.default = function (changes) {
+		// init domChanger
+		var root = new _RoomView2.default(changes);
+		(0, _domchanger2.default)(root.component, _window2.default.document.body).update();
+		return root.events;
+	};
+
+/***/ },
+/* 304 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*
+	Design of internal tree used for diffing algorithm:
+	==================================================
+
+	- collection of nodes is object with keys being unique name of node.
+	- items can be component, text node, tag node, or raw element:
+	  - text nodes contain {text, el} (el is only when instanced)
+	  - tag nodes contain {tagName, el, props, children} (el is only when instaced)
+	  - raw elements simply contain {el}
+	  - components in the new tree contain {component, data}, but once instanced
+	    contain {append, destroy, handleEvent, update} or the component instance itself.
+
+	Unique Name Algorithm:
+	=====================
+
+	Unique names are given to each node so that we can track their movement and
+	be smart about reusing nodes when changes happen.
+
+	- Names are only unique to their parent node, not globally.
+	- Components are named by their constructor name and optional user provided key
+	- Elements are named by their tag name and optional user provided ref
+	- Text nodes are simply named "text" and raw nodes are "el".
+	- When a duplicate name happens, the second one gets "-2" appended, then "-3"
+	  and so on.
+	*/
+
+	( // Module boilerplate to support commonjs, browser globals and AMD.
+	  (typeof module === "object" && typeof module.exports === "object" && function (m) { module.exports = m(); }) ||
+	  ("function" === "function" && function (m) { !(__WEBPACK_AMD_DEFINE_FACTORY__ = (m), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__)); }) ||
+	  (function (m) { window.domChanger = m(); })
+	)(function () {
+	"use strict";
+
+	function forEach(obj, fn) {
+	  var keys = Object.keys(obj);
+	  for (var i = 0, l = keys.length; i < l; ++i) {
+	    var key = keys[i];
+	    fn(key, obj[key]);
+	  }
+	}
+
+	function createComponent(component, parent, owner) {
+	  var refs = {};
+	  var data = [];
+	  var roots = {};
+	  // console.log("new " + component.name);
+	  var out = component(emit, refresh, refs);
+	  var render = out.render;
+	  var on = out.on || {};
+	  var cleanup = out.cleanup || noop;
+	  var instance = {
+	    update: update,
+	    destroy: destroy,
+	    append: append,
+	    handleEvent: handleEvent
+	  };
+
+	  // Add comment for this component.
+	  var comment = document.createComment(component.name);
+	  parent.appendChild(comment);
+
+	  return instance;
+
+	  function append() {
+	    comment.parentNode.appendChild(comment);
+	    forEach(roots, function (key, node) {
+	      if (node.el) parent.appendChild(node.el);
+	      else if (node.append) node.append();
+	    });
+	  }
+
+	  function destroy() {
+	    // console.log("destroy", component.name);
+	    comment.parentNode.removeChild(comment);
+	    comment = null;
+	    cleanRoots(roots);
+	    delete instance.update;
+	    delete instance.destroy;
+	    delete instance.handleEvent;
+	    cleanup();
+	  }
+
+	  function cleanRoots(roots) {
+	    forEach(roots, function (key, node) {
+	      if (node.el) node.el.parentNode.removeChild(node.el);
+	      else if (node.destroy) node.destroy();
+	      delete roots[key];
+	      if (node.children) cleanRoots(node.children);
+	    });
+	  }
+
+	  function refresh() {
+	    if (!render) return;
+	    var tree = nameNodes(render.apply(null, data));
+	    apply(parent, tree, roots);
+	  }
+
+	  function removeItem(item) {
+	    if (item.destroy) item.destroy();
+	    else item.el.parentNode.removeChild(item.el);
+	  }
+
+	  function apply(top, newTree, oldTree) {
+
+	    // Delete any items that don't exist in the new tree
+	    forEach(oldTree, function (key, item) {
+	      if (!newTree[key]) {
+	        removeItem(item);
+	        delete oldTree[key];
+	        // console.log("removed " + key)
+	      }
+	    });
+
+	    var oldKeys = Object.keys(oldTree);
+	    var newKeys = Object.keys(newTree);
+	    var index, length, key;
+	    for (index = 0, length = newKeys.length; index < length; index++) {
+	      key = newKeys[index];
+	      // console.group(key);
+	      var item = oldTree[key];
+	      var newItem = newTree[key];
+
+	      // Handle text nodes
+	      if ("text" in newItem) {
+	        if (item) {
+	          // Update the text if it's changed.
+	          if (newItem.text !== item.text) {
+	            item.el.nodeValue = item.text = newItem.text;
+	            // console.log("updated")
+	          }
+	        }
+	        else {
+	          // Otherwise create a new text node.
+	          item = oldTree[key] = {
+	            text: newItem.text,
+	            el: document.createTextNode(newItem.text)
+	          };
+	          top.appendChild(item.el);
+	          // console.log("created")
+	        }
+	      }
+
+	      // Handle tag nodes
+	      else if (newItem.tagName) {
+	        // Create a new item if there isn't one
+	        if (!item) {
+	          item = oldTree[key] = {
+	            tagName: newItem.tagName,
+	            el: document.createElement(newItem.tagName),
+	            children: {}
+	          };
+	          if (newItem.ref) {
+	            item.ref = newItem.ref;
+	            refs[item.ref] = item.el;
+	          }
+	          top.appendChild(item.el);
+	          // console.log("created")
+	        }
+	        // Update the tag
+	        if (!item.props) item.props = {};
+	        updateAttrs(item.el, newItem.props, item.props);
+
+	        if (newItem.children) {
+	          apply(item.el, newItem.children, item.children);
+	        }
+	      }
+
+	      // Handle component nodes
+	      else if (newItem.component) {
+	        if (!item) {
+	          item = oldTree[key] = createComponent(newItem.component, top, instance);
+	          item.append();
+	          // console.log("created")
+	        }
+	        item.update.apply(null, newItem.data);
+	      }
+
+	      else if (newItem.el) {
+	        if (item) {
+	          item = removeItem(item);
+	        }
+	        item = oldTree[key] = {
+	          el: newItem.el
+	        };
+	        top.appendChild(item.el);
+	      }
+
+	      else {
+	        console.error(newItem);
+	        throw new Error("This shouldn't happen");
+	      }
+
+	      // console.groupEnd(key);
+	    }
+
+	    // Check to see if set needs re-ordering
+	    var needOrder = false;
+	    for (index = 0, length = newKeys.length; index < length; index++) {
+	      key = newKeys[index];
+	      var oldIndex = oldKeys.indexOf(key);
+	      if (oldIndex >= 0 && oldIndex !== index) {
+	        needOrder = true;
+	        break;
+	      }
+	    }
+
+	    // If it does, sort the set and virtual tree to match the new order
+	    if (needOrder) {
+	      forEach(newTree, function (key) {
+	        var item = oldTree[key];
+	        delete oldTree[key];
+	        oldTree[key] = item;
+	        if (item.append) item.append();
+	        else top.appendChild(item.el);
+	      });
+	      // console.log("reordered")
+	    }
+
+	  }
+
+	  function update() {
+	    data = slice.call(arguments);
+	    refresh();
+	  }
+
+	  function emit() {
+	    if (!owner) throw new Error("Can't emit events from top-level component");
+	    owner.handleEvent.apply(null, arguments);
+	  }
+
+	  function handleEvent(name) {
+	    var handler = on[name];
+	    if (!handler) {
+	      if (owner) return owner.handleEvent.apply(null, arguments);
+	      throw new Error("Missing event handler for " + name);
+	    }
+	    handler.apply(null, slice.call(arguments, 1));
+	  }
+
+	}
+
+
+	// Given raw JSON-ML data, return a virtual DOM tree with auto-named nodes.
+	function nameNodes(raw) {
+	  var tree = {};
+	  processItem(tree, raw);
+	  return tree;
+
+	  function processItem(nodes, item) {
+
+	    // Figure out what type of item this is and normalize data a bit.
+	    var type, first, tag;
+	    if (typeof item === "number") {
+	      item = String(item);
+	    }
+	    if (typeof item === "string") {
+	      type = "text";
+	    }
+	    else if (Array.isArray(item)) {
+	      if (!item.length) return;
+	      first = item[0];
+	      if (typeof first === "function") {
+	        type = "component";
+	      }
+	      else if (typeof first === "string") {
+	        tag = processTag(item);
+	        type = "element";
+	      }
+	      else {
+	        item.forEach(function (child) {
+	          processItem(nodes, child);
+	        });
+	        return;
+	      }
+	    }
+	    else if (item instanceof HTMLElement) {
+	      type = "el";
+	    }
+	    else {
+	      console.error(item);
+	      throw new TypeError("Invalid item");
+	    }
+
+	    // Find a unique name for this local namespace.
+	    var i = 1;
+	    var subType = type == "element" ? tag.name : type == "component" ? item[0].name : type;
+	    var id = type === "element" ? tag.ref : type === "component" ? item.key : null;
+	    var newPath = id ? subType + "-" + id : subType;
+	    while (nodes[newPath]) newPath = subType + "-" + (id || "") + (++i);
+
+	    var node;
+
+	    if (type === "text") {
+	      nodes[newPath] = {
+	        text: item
+	      };
+	      return;
+	    }
+
+	    if (type === "el") {
+	      nodes[newPath] = {
+	        el: item
+	      };
+	      return;
+	    }
+
+	    if (type === "element") {
+	      var sub = {};
+	      node = nodes[newPath] = {
+	        tagName: tag.name,
+	      };
+	      if (!isEmpty(tag.props)) node.props = tag.props;
+	      if (tag.ref) node.ref = tag.ref;
+	      tag.body.forEach(function (child) {
+	        processItem(sub, child);
+	      });
+	      if (!isEmpty(sub)) node.children = sub;
+	      return;
+	    }
+
+	    if (type === "component") {
+	      nodes[newPath] = {
+	        component: item[0],
+	        data: item.slice(1)
+	      };
+	      return;
+	    }
+
+	    throw new TypeError("Invalid type");
+	  }
+
+	}
+
+	// Parse and process a JSON-ML element.
+	function processTag(array) {
+	  var props = {}, body;
+	  if (array[1] && array[1].constructor === Object) {
+	    var keys = Object.keys(array[1]);
+	    for (var i = 0, l = keys.length; i < l; i++) {
+	      var key = keys[i];
+	      props[key] = array[1][key];
+	    }
+	    body = array.slice(2);
+	  }
+	  else {
+	    body = array.slice(1);
+	  }
+	  var string = array[0];
+	  var name = string.match(TAG_MATCH);
+	  var tag = {
+	    name: name ? name[0] : "div",
+	    props: props,
+	    body: body
+	  };
+	  var classes = string.match(CLASS_MATCH);
+	  if (classes) {
+	    classes = classes.map(stripFirst).join(" ");
+	    if (props.class) props.class += " " + classes;
+	    else props.class = classes;
+	  }
+	  var id = string.match(ID_MATCH);
+	  if (id) {
+	    props.id = stripFirst(id[0]);
+	  }
+	  var ref = string.match(REF_MATCH);
+	  if (ref) {
+	    tag.ref = stripFirst(ref[0]);
+	  }
+	  return tag;
+	}
+
+	function updateAttrs(node, attrs, old) {
+
+	  // Remove any attributes that were in the old version, but not in the new.
+	  Object.keys(old).forEach(function (key) {
+	    // Don't remove attributes still live.
+	    if (attrs && attrs[key]) return;
+
+	    // Special case to remove event handlers
+	    if (key.substr(0, 2) === "on") {
+	      var eventName = key.substring(2);
+	      node.removeEventListener(eventName, old[key]);
+	    }
+
+	    // All other attributes remove normally including "style"
+	    else {
+	      node.removeAttribute(key);
+	    }
+	    // console.log("unset " + key)
+
+	    // Remove from virtual DOM too.
+	    old[key] = null;
+	  });
+
+	  // Add in new attributes and update existing ones.
+	  if (attrs) forEach(attrs, function (key, value) {
+	    var oldValue = old[key];
+
+	    // Special case for object form styles
+	    if (key === "style" && typeof value === "object") {
+	      // Remove old version if it was in string form before.
+	      if (typeof oldValue === "string") {
+	        node.removeAttribute("style");
+	        // console.log("unset style")
+	      }
+	      // Make sure the virtual DOM is in object form.
+	      if (!oldValue || typeof oldValue !== "object") {
+	        oldValue = old.style = {};
+	      }
+	      updateStyle(node.style, value, oldValue);
+	      return;
+	    }
+
+	    // Skip any unchanged values.
+	    if (oldValue === value) return;
+
+	    // Record new value in virtual tree
+	    old[key] = value;
+
+	    // Add event listeners for attributes starting with "on"
+	    if (key.substr(0, 2) === "on") {
+	      var eventName = key.substring(2);
+	      // If an event listener is updated, remove the old one.
+	      if (oldValue) {
+	        node.removeEventListener(eventName, oldValue);
+	      }
+	      // Add the new listener
+	      node.addEventListener(eventName, value);
+	    }
+	    else if (key === "checked" && node.nodeName === "INPUT") {
+	      if (node.checked === value) return;
+	      node.checked = value;
+	    }
+	    // different way of updating the (actual) value for inputs
+	    else if (key === 'value' && node.nodeName === 'INPUT') {
+	      // Make sure the value is actually different.
+	      if (node.value === value) return;
+	      node.value = value;
+	    }
+	    // Handle boolean values as valueless attributes
+	    else if (typeof value === "boolean") {
+	      if (value) node.setAttribute(key, key);
+	      else node.removeAttribute(key);
+	    }
+	    // handle normal attribute
+	    else {
+	      node.setAttribute(key, value);
+	    }
+
+	    // console.log("set " + key)
+
+	  });
+
+	}
+
+	function updateStyle(style, attrs, old) {
+	  // Remove any old styles that aren't there anymore
+	  forEach(old, function (key) {
+	    if (attrs && attrs[key]) return;
+	    old[key] = style[key] = "";
+	    // console.log("unstyled " + key)
+	  });
+	  if (attrs) forEach(attrs, function (key, value) {
+	    var oldValue = old[key];
+	    if (oldValue === value) return;
+	    old[key] = style[key] = attrs[key];
+	    // console.log("styled " + key)
+	  });
+	}
+
+	function stripFirst(part) {
+	  return part.substring(1);
+	}
+
+	function isEmpty(obj) {
+	  return !Object.keys(obj).length;
+	}
+
+	var CLASS_MATCH = /\.[^.#$]+/g,
+	    ID_MATCH = /#[^.#$]+/,
+	    REF_MATCH = /\$[^.#$]+/,
+	    TAG_MATCH = /^[^.#$]+/;
+
+	var slice = [].slice;
+	function noop() {}
+
+	return createComponent;
+
+	});
+
+
+/***/ },
+/* 305 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _kefir = __webpack_require__(302);
+
+	var _kefir2 = _interopRequireDefault(_kefir);
+
+	var _View2 = __webpack_require__(306);
+
+	var _View3 = _interopRequireDefault(_View2);
+
+	var _ArenaView = __webpack_require__(307);
+
+	var _ArenaView2 = _interopRequireDefault(_ArenaView);
+
+	var _DeckView = __webpack_require__(313);
+
+	var _DeckView2 = _interopRequireDefault(_DeckView);
+
+	var _NameView = __webpack_require__(314);
+
+	var _NameView2 = _interopRequireDefault(_NameView);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+	var RoomView = function (_View) {
+		_inherits(RoomView, _View);
+
+		function RoomView(changes) {
+			_classCallCheck(this, RoomView);
+
+			var _this = _possibleConstructorReturn(this, (RoomView.__proto__ || Object.getPrototypeOf(RoomView)).call(this, changes, ['room'], function (s) {
+				return s;
+			}, _kefir2.default.pool()));
+
+			_this.nameView = new _NameView2.default(changes);
+			_this.events.plug(_this.nameView.events);
+
+			_this.arenaView = new _ArenaView2.default(changes);
+			_this.events.plug(_this.arenaView.events);
+
+			_this.deckView = new _DeckView2.default(changes);
+			_this.events.plug(_this.deckView.events);
+			return _this;
+		}
+
+		_createClass(RoomView, [{
+			key: '_render',
+			value: function _render() {
+				return ['div', { class: 'main ' + (this._data.room ? '' : 'lobby') }, [this.nameView.component], [this.arenaView.component], [this.deckView.component]];
+			}
+		}]);
+
+		return RoomView;
+	}(_View3.default);
+
+	exports.default = RoomView;
+
+/***/ },
 /* 306 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _lodash = __webpack_require__(300);
+
+	var _lodash2 = _interopRequireDefault(_lodash);
+
+	var _kefir = __webpack_require__(302);
+
+	var _kefir2 = _interopRequireDefault(_kefir);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
-	var _ = __webpack_require__(299),
-	    Kefir = __webpack_require__(305);
-
-	module.exports = function () {
+	var View = function () {
 		function View() {
-			var changes = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : Kefir.never();
+			var changes = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : _kefir2.default.never();
+			var keys = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
 
 			var _this = this;
 
-			var keys = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : [];
 			var modifier = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : function (s) {
 				return s;
 			};
+			var events = arguments[3];
 
 			_classCallCheck(this, View);
 
-			this.events = Kefir.stream(this._subscribe.bind(this));
+			this.events = events || _kefir2.default.stream(this._subscribe.bind(this));
 
 			this.changes = modifier(changes.map(function (v) {
-				return _.pick(v, keys);
+				return _lodash2.default.pick(v, keys);
 			}).filter(function (v) {
-				return !_.isEmpty(v);
+				return !_lodash2.default.isEmpty(v);
 			})).onValue(function (v) {
 				return _this._refresh(v);
 			});
 
-			this._data = {};
-
 			this.component = this.component.bind(this);
+			Object.defineProperty(this.component, 'name', { writable: true });
+			this.component.name = this.constructor.name;
+
 			this._clean = this._clean.bind(this);
 			this._render = this._render.bind(this);
+
+			this._data = {};
 		}
 
 		_createClass(View, [{
@@ -29397,17 +29452,17 @@
 		}, {
 			key: '_clean',
 			value: function _clean() {
-				this._emitter.end();
+				this._emitter && this._emitter.end();
 			}
 		}, {
 			key: '_emit',
 			value: function _emit(v) {
-				this._emitter.emit(v);
+				this._emitter && this._emitter.emit(v);
 			}
 		}, {
 			key: '_refresh',
 			value: function _refresh(data) {
-				this._data = _.defaults(data, this._data);
+				this._data = _lodash2.default.defaults(data, this._data);
 				if (this._dC_refresh) this._dC_refresh();
 			}
 		}, {
@@ -29425,13 +29480,41 @@
 		return View;
 	}();
 
+	exports.default = View;
+
 /***/ },
 /* 307 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _kefir = __webpack_require__(302);
+
+	var _kefir2 = _interopRequireDefault(_kefir);
+
+	var _View2 = __webpack_require__(306);
+
+	var _View3 = _interopRequireDefault(_View2);
+
+	var _ControlView = __webpack_require__(308);
+
+	var _ControlView2 = _interopRequireDefault(_ControlView);
+
+	var _ResultsView = __webpack_require__(311);
+
+	var _ResultsView2 = _interopRequireDefault(_ResultsView);
+
+	var _UsersView = __webpack_require__(312);
+
+	var _UsersView2 = _interopRequireDefault(_UsersView);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -29439,108 +29522,7 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var Kefir = __webpack_require__(305),
-	    View = __webpack_require__(306)
-	//, RoomNameView = require('./RoomNameView')
-	;
-
-	module.exports = function (_View) {
-		_inherits(LobbyView, _View);
-
-		function LobbyView(changes) {
-			_classCallCheck(this, LobbyView);
-
-			var _this = _possibleConstructorReturn(this, (LobbyView.__proto__ || Object.getPrototypeOf(LobbyView)).call(this, changes));
-
-			_this.events = Kefir.pool();
-
-			// this.roomNameView = new RoomNameView(changes);
-			// this.events.plug(this.roomNameView.events);
-			return _this;
-		}
-
-		_createClass(LobbyView, [{
-			key: '_render',
-			value: function _render() {
-				return ['div', { class: 'main' }, []];
-			}
-		}]);
-
-		return LobbyView;
-	}(View);
-
-/***/ },
-/* 308 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-	var Kefir = __webpack_require__(305),
-	    View = __webpack_require__(306),
-	    ArenaView = __webpack_require__(309),
-	    DeckView = __webpack_require__(315),
-	    NameView = __webpack_require__(316);
-
-	module.exports = function (_View) {
-		_inherits(RootView, _View);
-
-		function RootView(changes) {
-			_classCallCheck(this, RootView);
-
-			var _this = _possibleConstructorReturn(this, (RootView.__proto__ || Object.getPrototypeOf(RootView)).call(this, changes));
-
-			_this.events = Kefir.pool();
-
-			_this.nameView = new NameView(changes);
-			_this.events.plug(_this.nameView.events);
-
-			_this.arenaView = new ArenaView(changes);
-			_this.events.plug(_this.arenaView.events);
-
-			_this.deckView = new DeckView(changes);
-			_this.events.plug(_this.deckView.events);
-			return _this;
-		}
-
-		_createClass(RootView, [{
-			key: '_render',
-			value: function _render() {
-				return ['div', { class: 'main' }, [this.nameView.component], [this.arenaView.component], [this.deckView.component]];
-			}
-		}]);
-
-		return RootView;
-	}(View);
-
-/***/ },
-/* 309 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
-
-	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-	var Kefir = __webpack_require__(305),
-	    View = __webpack_require__(306),
-	    ControlView = __webpack_require__(310),
-	    ResultsView = __webpack_require__(313),
-	    UsersView = __webpack_require__(314);
-
-	module.exports = function (_View) {
+	var ArenaView = function (_View) {
 		_inherits(ArenaView, _View);
 
 		function ArenaView(changes) {
@@ -29548,15 +29530,15 @@
 
 			var _this = _possibleConstructorReturn(this, (ArenaView.__proto__ || Object.getPrototypeOf(ArenaView)).call(this, changes, ['show_votes']));
 
-			_this.events = Kefir.pool();
+			_this.events = _kefir2.default.pool();
 
-			_this.usersView = new UsersView(changes);
+			_this.usersView = new _UsersView2.default(changes);
 			//this.events.plug(this.usersView.events);
 
-			_this.controlView = new ControlView(changes);
+			_this.controlView = new _ControlView2.default(changes);
 			_this.events.plug(_this.controlView.events);
 
-			_this.resultsView = new ResultsView(changes);
+			_this.resultsView = new _ResultsView2.default(changes);
 			//this.events.plug(this.resultsView.events);
 			return _this;
 		}
@@ -29569,15 +29551,39 @@
 		}]);
 
 		return ArenaView;
-	}(View);
+	}(_View3.default);
+
+	exports.default = ArenaView;
 
 /***/ },
-/* 310 */
+/* 308 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _kefir = __webpack_require__(302);
+
+	var _kefir2 = _interopRequireDefault(_kefir);
+
+	var _View2 = __webpack_require__(306);
+
+	var _View3 = _interopRequireDefault(_View2);
+
+	var _IconButtonView = __webpack_require__(309);
+
+	var _IconButtonView2 = _interopRequireDefault(_IconButtonView);
+
+	var _TextInputView = __webpack_require__(310);
+
+	var _TextInputView2 = _interopRequireDefault(_TextInputView);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -29585,12 +29591,7 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var Kefir = __webpack_require__(305),
-	    View = __webpack_require__(306),
-	    IconButtonView = __webpack_require__(311),
-	    TextInputView = __webpack_require__(312);
-
-	module.exports = function (_View) {
+	var ControlView = function (_View) {
 		_inherits(ControlView, _View);
 
 		function ControlView(changes) {
@@ -29598,10 +29599,10 @@
 
 			var _this = _possibleConstructorReturn(this, (ControlView.__proto__ || Object.getPrototypeOf(ControlView)).call(this, changes, ['issue']));
 
-			_this.issueInput = new TextInputView(changes, 'topic');
-			_this.resetButton = new IconButtonView(changes, 'refresh', 'reset');
-			_this.revealButton = new IconButtonView(changes, 'eye', 'reveal');
-			_this.events = Kefir.merge([_this.issueInput.events, _this.resetButton.events.map(function () {
+			_this.issueInput = new _TextInputView2.default(changes, 'topic');
+			_this.resetButton = new _IconButtonView2.default(changes, 'refresh', 'reset');
+			_this.revealButton = new _IconButtonView2.default(changes, 'eye', 'reveal');
+			_this.events = _kefir2.default.merge([_this.issueInput.events, _this.resetButton.events.map(function () {
 				return { 'click:reset': true };
 			}), _this.revealButton.events.map(function () {
 				return { 'click:reveal': true };
@@ -29617,15 +29618,31 @@
 		}]);
 
 		return ControlView;
-	}(View);
+	}(_View3.default);
+
+	exports.default = ControlView;
 
 /***/ },
-/* 311 */
+/* 309 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _View2 = __webpack_require__(306);
+
+	var _View3 = _interopRequireDefault(_View2);
+
+	var _window = __webpack_require__(298);
+
+	var _window2 = _interopRequireDefault(_window);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -29633,10 +29650,7 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var View = __webpack_require__(306),
-	    w = __webpack_require__(302);
-
-	module.exports = function (_View) {
+	var IconButtonView = function (_View) {
 		_inherits(IconButtonView, _View);
 
 		function IconButtonView(changes, name, className) {
@@ -29657,7 +29671,7 @@
 			value: function _render() {
 				var _this2 = this;
 
-				var elem = w.document.createElement('span');
+				var elem = _window2.default.document.createElement('span');
 				elem.innerHTML = '<svg><use xlink:href="/img/icons.svg#' + this.name + '" /></svg>';
 
 				return ['button', {
@@ -29670,15 +29684,35 @@
 		}]);
 
 		return IconButtonView;
-	}(View);
+	}(_View3.default);
+
+	exports.default = IconButtonView;
 
 /***/ },
-/* 312 */
+/* 310 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _View2 = __webpack_require__(306);
+
+	var _View3 = _interopRequireDefault(_View2);
+
+	var _kefir = __webpack_require__(302);
+
+	var _kefir2 = _interopRequireDefault(_kefir);
+
+	var _window = __webpack_require__(298);
+
+	var _window2 = _interopRequireDefault(_window);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
@@ -29688,10 +29722,7 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var View = __webpack_require__(306),
-	    w = __webpack_require__(302);
-
-	module.exports = function (_View) {
+	var TextInputView = function (_View) {
 		_inherits(TextInputView, _View);
 
 		function TextInputView(changes, name, className, placeholder) {
@@ -29702,10 +29733,20 @@
 			_this.name = name;
 			_this.className = className || name;
 			_this.placeholder = placeholder || name;
-			_this.events = _this.events.map(function (val) {
-				return _defineProperty({}, 'set:' + _this.name, val);
-			});
-			_this.canvas = w.document.createElement('canvas');
+			_this.events = _kefir2.default.merge([_this.events.filter(function (v) {
+				return v.startsWith('input:');
+			}).map(function (v) {
+				return v.replace('input:', '');
+			}).map(function (v) {
+				return _defineProperty({}, 'set:' + _this.name, v);
+			}), _this.events.filter(function (v) {
+				return v.startsWith('change:');
+			}).map(function (v) {
+				return v.replace('change:', '');
+			}).map(function (v) {
+				return _defineProperty({}, 'submit:' + _this.name, v);
+			})]);
+			_this.canvas = _window2.default.document.createElement('canvas');
 			return _this;
 		}
 
@@ -29728,26 +29769,46 @@
 					class: 'text-input ' + this.className
 				}, ['input', {
 					oninput: function oninput(e) {
-						return _this2._emit(e.target.value);
+						e.target.style = 'width: calc(' + _this2.measure(e.target.value.length ? e.target.value : _this2.placeholder) + 'px + 0.5rem)';
+						_this2._emit('input:' + e.target.value);
+					},
+					onchange: function onchange(e) {
+						return _this2._emit('change:' + e.target.value);
 					},
 					type: 'text',
 					placeholder: ' ',
-					style: 'width: calc(' + this.measure(value) + 'px + 1rem)',
+					style: 'width: calc(' + this.measure(value) + 'px + 0.5rem)',
 					value: this._data[this.name]
 				}], ['label', {}, this.placeholder]];
 			}
 		}]);
 
 		return TextInputView;
-	}(View);
+	}(_View3.default);
+
+	exports.default = TextInputView;
 
 /***/ },
-/* 313 */
+/* 311 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _lodash = __webpack_require__(300);
+
+	var _lodash2 = _interopRequireDefault(_lodash);
+
+	var _View2 = __webpack_require__(306);
+
+	var _View3 = _interopRequireDefault(_View2);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -29755,10 +29816,7 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var _ = __webpack_require__(299),
-	    View = __webpack_require__(306);
-
-	module.exports = function (_View) {
+	var ResultsView = function (_View) {
 		_inherits(ResultsView, _View);
 
 		function ResultsView(changes) {
@@ -29767,8 +29825,8 @@
 			return _possibleConstructorReturn(this, (ResultsView.__proto__ || Object.getPrototypeOf(ResultsView)).call(this, changes, ['users'], function (stream) {
 				return stream.map(function (data) {
 					return data.users;
-				}).filter().map(_.values).map(function (users) {
-					return _.filter(users, function (user) {
+				}).filter().map(_lodash2.default.values).map(function (users) {
+					return _lodash2.default.filter(users, function (user) {
 						return user.vote !== undefined;
 					});
 				}).map(function (users) {
@@ -29776,17 +29834,17 @@
 						return user.vote;
 					});
 				}).map(function (votes) {
-					return _.countBy(votes);
+					return _lodash2.default.countBy(votes);
 				}).map(function (counts) {
-					return _.map(counts, function (count, vote) {
+					return _lodash2.default.map(counts, function (count, vote) {
 						return { vote: vote, count: count };
 					});
 				}).map(function (votes) {
 					return {
-						votes: _.sortBy(votes, function (o) {
+						votes: _lodash2.default.sortBy(votes, function (o) {
 							return parseFloat(o.vote);
 						}),
-						total: _.sumBy(votes, 'count')
+						total: _lodash2.default.sumBy(votes, 'count')
 					};
 				});
 			}));
@@ -29811,10 +29869,12 @@
 		}]);
 
 		return ResultsView;
-	}(View);
+	}(_View3.default);
+
+	exports.default = ResultsView;
 
 /***/ },
-/* 314 */
+/* 312 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -29823,14 +29883,21 @@
 
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
+	var _lodash = __webpack_require__(300);
+
+	var _lodash2 = _interopRequireDefault(_lodash);
+
+	var _View2 = __webpack_require__(306);
+
+	var _View3 = _interopRequireDefault(_View2);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 	function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-
-	var _ = __webpack_require__(299),
-	    View = __webpack_require__(306);
 
 	module.exports = function (_View) {
 		_inherits(UsersView, _View);
@@ -29848,8 +29915,8 @@
 
 				if (this._data.users) {
 					var _ret = function () {
-						var num = _.size(_this2._data.users);
-						var users = _.values(_this2._data.users);
+						var num = _lodash2.default.size(_this2._data.users);
+						var users = _lodash2.default.values(_this2._data.users);
 
 						return {
 							v: ['ul', users.map(function (u, i) {
@@ -29873,15 +29940,25 @@
 		}]);
 
 		return UsersView;
-	}(View);
+	}(_View3.default);
 
 /***/ },
-/* 315 */
+/* 313 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
 	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _View2 = __webpack_require__(306);
+
+	var _View3 = _interopRequireDefault(_View2);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -29889,9 +29966,7 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var View = __webpack_require__(306);
-
-	module.exports = function (_View) {
+	var DeckView = function (_View) {
 		_inherits(DeckView, _View);
 
 		function DeckView(changes) {
@@ -29931,13 +30006,39 @@
 		}]);
 
 		return DeckView;
-	}(View);
+	}(_View3.default);
+
+	exports.default = DeckView;
 
 /***/ },
-/* 316 */
+/* 314 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
+	var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+	var _window = __webpack_require__(298);
+
+	var _window2 = _interopRequireDefault(_window);
+
+	var _kefir = __webpack_require__(302);
+
+	var _kefir2 = _interopRequireDefault(_kefir);
+
+	var _View2 = __webpack_require__(306);
+
+	var _View3 = _interopRequireDefault(_View2);
+
+	var _TextInputView = __webpack_require__(310);
+
+	var _TextInputView2 = _interopRequireDefault(_TextInputView);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
@@ -29945,51 +30046,80 @@
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var TextInputView = __webpack_require__(312);
-
-	module.exports = function (_TextInputView) {
-		_inherits(NameView, _TextInputView);
+	var NameView = function (_View) {
+		_inherits(NameView, _View);
 
 		function NameView(changes) {
 			_classCallCheck(this, NameView);
 
-			return _possibleConstructorReturn(this, (NameView.__proto__ || Object.getPrototypeOf(NameView)).call(this, changes, 'name', 'user', 'name'));
+			var _this = _possibleConstructorReturn(this, (NameView.__proto__ || Object.getPrototypeOf(NameView)).call(this, changes, ['room'], function (s) {
+				return s;
+			}, _kefir2.default.pool()));
+
+			_this.nameView = new _TextInputView2.default(changes, 'name', 'user', 'name');
+			_this.events.plug(_this.nameView.events);
+
+			_this.roomView = new _TextInputView2.default(changes, 'room');
+			_this.events.plug(_this.roomView.events);
+			return _this;
 		}
 
+		_createClass(NameView, [{
+			key: '_render',
+			value: function _render() {
+				return ['div', { class: 'where' }, [this.nameView.component], ['span', '@'], ['span', _window2.default.location.hostname], ['span', '/'], [this.roomView.component]];
+			}
+		}]);
+
 		return NameView;
-	}(TextInputView);
+	}(_View3.default);
+
+	exports.default = NameView;
 
 /***/ },
-/* 317 */
+/* 315 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
 	var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+	__webpack_require__(316);
+
+	__webpack_require__(318);
+
+	var _lodash = __webpack_require__(300);
+
+	var _lodash2 = _interopRequireDefault(_lodash);
+
+	var _app = __webpack_require__(317);
+
+	var _app2 = _interopRequireDefault(_app);
+
+	var _event$ = __webpack_require__(319);
+
+	var _event$2 = _interopRequireDefault(_event$);
+
+	var _kefir = __webpack_require__(302);
+
+	var _kefir2 = _interopRequireDefault(_kefir);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 	function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
-	var _ = __webpack_require__(299),
-	    firebase = __webpack_require__(318),
-	    event$ = __webpack_require__(319),
-	    Kefir = __webpack_require__(305);
-
-	__webpack_require__(320);
-	__webpack_require__(321);
-
-	var fb$ = function fb$(reference) {
-		return Kefir.fromEvents(reference, 'value').map(function (snap) {
-			return _defineProperty({}, 'change:' + snap.key, snap.val());
-		});
-	};
-
-	module.exports = function (changes) {
+	exports.default = function (changes) {
 		var roomRef = void 0,
-		    userRef = void 0;
+		    userRef = void 0,
+		    refs = [];
 
 		// init firebase
-		var app$ = event$(changes, 'firebase').filter(_.isObject).map(function (config) {
-			return firebase.initializeApp(config);
+		var app$ = (0, _event$2.default)(changes, 'firebase').filter(_lodash2.default.isObject).map(function (config) {
+			return _app2.default.initializeApp(config);
 		}).filter();
 
 		// init auth
@@ -29997,133 +30127,91 @@
 			return app.auth();
 		});
 		var authUser$ = auth$.flatMap(function (auth) {
-			return Kefir.stream(function (e) {
+			return _kefir2.default.stream(function (e) {
 				return auth.onAuthStateChanged(e.emit);
 			});
 		});
 
 		// sign in user if they aren't
-		auth$.sampledBy(authUser$.filter(_.isNull)).onValue(function (auth) {
+		auth$.sampledBy(authUser$.filter(_lodash2.default.isNull)).onValue(function (auth) {
 			return auth.signInAnonymously();
 		});
 
 		// init updates
-		event$(changes, 'show_votes').filter(_.isBoolean).onValue(function (show_votes) {
+		(0, _event$2.default)(changes, 'show_votes').filter(_lodash2.default.isBoolean).onValue(function (show_votes) {
 			return roomRef ? roomRef.update({ show_votes: show_votes }) : roomRef;
 		});
-		event$(changes, 'topic').filter(_.isString).onValue(function (topic) {
+		(0, _event$2.default)(changes, 'topic').filter(_lodash2.default.isString).onValue(function (topic) {
 			return roomRef ? roomRef.update({ topic: topic }) : roomRef;
 		});
-		event$(changes, 'users').filter(_.isObject).onValue(function (users) {
+		(0, _event$2.default)(changes, 'users').filter(_lodash2.default.isObject).onValue(function (users) {
 			return roomRef ? roomRef.update({ users: users }) : roomRef;
 		});
-		event$(changes, 'votes').filter(_.isArray).onValue(function (votes) {
+		(0, _event$2.default)(changes, 'votes').filter(_lodash2.default.isArray).onValue(function (votes) {
 			return roomRef ? roomRef.update({ votes: votes }) : roomRef;
 		});
-		event$(changes, 'vote').filter(_.isString).onValue(function (vote) {
+		(0, _event$2.default)(changes, 'vote').filter(_lodash2.default.isString).onValue(function (vote) {
 			return userRef ? userRef.update({ vote: vote }) : userRef;
 		});
 
 		// init room
 		var room$ = app$.map(function (app) {
 			return app.database().ref();
-		}).combine(event$(changes, 'room').filter(_.isString), function (db, roomName) {
+		}).combine((0, _event$2.default)(changes, 'room').filter().skipDuplicates(), function (db, roomName) {
 			return db.child(roomName);
 		}).filter();
 
 		// init user
-		var user$ = Kefir.combine([room$, authUser$.filter().map(function (v) {
+		var user$ = _kefir2.default.combine([room$, authUser$.filter().map(function (v) {
 			return v.uid;
 		})], function (room, userId) {
 			return room.child('users/' + userId);
 		});
 
 		// handle special user name case
-		Kefir.combine([user$.filter(), event$(changes, 'name').filter(_.isString)]).onValue(function (_ref2) {
-			var _ref3 = _slicedToArray(_ref2, 2);
+		_kefir2.default.combine([user$.filter(), (0, _event$2.default)(changes, 'name').filter(_lodash2.default.isString)]).onValue(function (_ref) {
+			var _ref2 = _slicedToArray(_ref, 2);
 
-			var user = _ref3[0];
-			var name = _ref3[1];
+			var user = _ref2[0];
+			var name = _ref2[1];
 			return user.update({ name: name });
 		});
 
-		return Kefir.combine([room$, user$]).flatMap(function (_ref4) {
-			var _ref5 = _slicedToArray(_ref4, 2);
+		return _kefir2.default.combine([room$, user$]).flatMap(function (_ref3) {
+			var _ref4 = _slicedToArray(_ref3, 2);
 
-			var room = _ref5[0];
-			var user = _ref5[1];
+			var room = _ref4[0];
+			var user = _ref4[1];
 
 			// drop references to old room
 			if (roomRef) roomRef.off();
 			roomRef = room;
 
-			// update user reference
+			// remove user from old room and update user reference
+			if (userRef) userRef.remove();
 			userRef = user;
 			user.onDisconnect().remove();
 
+			// drop old references
+			refs.map(function (ref) {
+				return ref.off();
+			});
+			refs = [room.child('show_votes'), room.child('users'), room.child('topic'), room.child('votes'), user.child('name'), user.child('vote')];
+
 			// return new streams
-			return Kefir.merge([fb$(room.child('show_votes')), fb$(room.child('topic')), fb$(room.child('votes')), fb$(room.child('users')), fb$(user.child('name')), fb$(user.child('vote'))]);
+			return _kefir2.default.constant(refs).flatten().flatMap(function (ref) {
+				return _kefir2.default.fromEvents(ref, 'value').map(function (snap) {
+					return _defineProperty({}, 'change:' + snap.key, snap.val());
+				}).skipDuplicates(_lodash2.default.isEqual);
+			});
 		});
 	};
 
 /***/ },
-/* 318 */
-/***/ function(module, exports) {
-
-	/* WEBPACK VAR INJECTION */(function(global) {/*! @license Firebase v3.4.1
-	    Build: 3.4.1-rc.2
-	    Terms: https://developers.google.com/terms */
-	var firebase = null; (function() { var aa="function"==typeof Object.defineProperties?Object.defineProperty:function(a,b,c){if(c.get||c.set)throw new TypeError("ES3 does not support getters and setters.");a!=Array.prototype&&a!=Object.prototype&&(a[b]=c.value)},h="undefined"!=typeof window&&window===this?this:"undefined"!=typeof global&&null!=global?global:this,l=function(){l=function(){};h.Symbol||(h.Symbol=ba)},ca=0,ba=function(a){return"jscomp_symbol_"+(a||"")+ca++},n=function(){l();var a=h.Symbol.iterator;a||(a=h.Symbol.iterator=
-	h.Symbol("iterator"));"function"!=typeof Array.prototype[a]&&aa(Array.prototype,a,{configurable:!0,writable:!0,value:function(){return m(this)}});n=function(){}},m=function(a){var b=0;return da(function(){return b<a.length?{done:!1,value:a[b++]}:{done:!0}})},da=function(a){n();a={next:a};a[h.Symbol.iterator]=function(){return this};return a},q=this,r=function(){},t=function(a){var b=typeof a;if("object"==b)if(a){if(a instanceof Array)return"array";if(a instanceof Object)return b;var c=Object.prototype.toString.call(a);
-	if("[object Window]"==c)return"object";if("[object Array]"==c||"number"==typeof a.length&&"undefined"!=typeof a.splice&&"undefined"!=typeof a.propertyIsEnumerable&&!a.propertyIsEnumerable("splice"))return"array";if("[object Function]"==c||"undefined"!=typeof a.call&&"undefined"!=typeof a.propertyIsEnumerable&&!a.propertyIsEnumerable("call"))return"function"}else return"null";else if("function"==b&&"undefined"==typeof a.call)return"object";return b},v=function(a){return"function"==t(a)},ea=function(a,
-	b,c){return a.call.apply(a.bind,arguments)},fa=function(a,b,c){if(!a)throw Error();if(2<arguments.length){var d=Array.prototype.slice.call(arguments,2);return function(){var c=Array.prototype.slice.call(arguments);Array.prototype.unshift.apply(c,d);return a.apply(b,c)}}return function(){return a.apply(b,arguments)}},w=function(a,b,c){w=Function.prototype.bind&&-1!=Function.prototype.bind.toString().indexOf("native code")?ea:fa;return w.apply(null,arguments)},x=function(a,b){var c=Array.prototype.slice.call(arguments,
-	1);return function(){var b=c.slice();b.push.apply(b,arguments);return a.apply(this,b)}},y=function(a,b){function c(){}c.prototype=b.prototype;a.ga=b.prototype;a.prototype=new c;a.prototype.constructor=a;a.fa=function(a,c,f){for(var d=Array(arguments.length-2),e=2;e<arguments.length;e++)d[e-2]=arguments[e];return b.prototype[c].apply(a,d)}};var z;z="undefined"!==typeof window?window:"undefined"!==typeof self?self:global;function __extends(a,b){function c(){this.constructor=a}for(var d in b)b.hasOwnProperty(d)&&(a[d]=b[d]);a.prototype=null===b?Object.create(b):(c.prototype=b.prototype,new c)}
-	function __decorate(a,b,c,d){var e=arguments.length,f=3>e?b:null===d?d=Object.getOwnPropertyDescriptor(b,c):d,g;g=z.Reflect;if("object"===typeof g&&"function"===typeof g.decorate)f=g.decorate(a,b,c,d);else for(var k=a.length-1;0<=k;k--)if(g=a[k])f=(3>e?g(f):3<e?g(b,c,f):g(b,c))||f;return 3<e&&f&&Object.defineProperty(b,c,f),f}function __metadata(a,b){var c=z.Reflect;if("object"===typeof c&&"function"===typeof c.metadata)return c.metadata(a,b)}
-	var __param=function(a,b){return function(c,d){b(c,d,a)}},__awaiter=function(a,b,c,d){return new (c||(c=Promise))(function(e,f){function g(a){try{p(d.next(a))}catch(u){f(u)}}function k(a){try{p(d.throw(a))}catch(u){f(u)}}function p(a){a.done?e(a.value):(new c(function(b){b(a.value)})).then(g,k)}p((d=d.apply(a,b)).next())})};"undefined"!==typeof z.L&&z.L||(z.ca=__extends,z.ba=__decorate,z.da=__metadata,z.ea=__param,z.aa=__awaiter);var A=function(a){if(Error.captureStackTrace)Error.captureStackTrace(this,A);else{var b=Error().stack;b&&(this.stack=b)}a&&(this.message=String(a))};y(A,Error);A.prototype.name="CustomError";var ga=function(a,b){for(var c=a.split("%s"),d="",e=Array.prototype.slice.call(arguments,1);e.length&&1<c.length;)d+=c.shift()+e.shift();return d+c.join("%s")};var B=function(a,b){b.unshift(a);A.call(this,ga.apply(null,b));b.shift()};y(B,A);B.prototype.name="AssertionError";var ha=function(a,b,c,d){var e="Assertion failed";if(c)var e=e+(": "+c),f=d;else a&&(e+=": "+a,f=b);throw new B(""+e,f||[]);},C=function(a,b,c){a||ha("",null,b,Array.prototype.slice.call(arguments,2))},D=function(a,b,c){v(a)||ha("Expected function but got %s: %s.",[t(a),a],b,Array.prototype.slice.call(arguments,2))};var E=function(a,b,c){this.S=c;this.M=a;this.U=b;this.s=0;this.o=null};E.prototype.get=function(){var a;0<this.s?(this.s--,a=this.o,this.o=a.next,a.next=null):a=this.M();return a};E.prototype.put=function(a){this.U(a);this.s<this.S&&(this.s++,a.next=this.o,this.o=a)};var F;a:{var ia=q.navigator;if(ia){var ja=ia.userAgent;if(ja){F=ja;break a}}F=""};var ka=function(a){q.setTimeout(function(){throw a;},0)},G,la=function(){var a=q.MessageChannel;"undefined"===typeof a&&"undefined"!==typeof window&&window.postMessage&&window.addEventListener&&-1==F.indexOf("Presto")&&(a=function(){var a=document.createElement("IFRAME");a.style.display="none";a.src="";document.documentElement.appendChild(a);var b=a.contentWindow,a=b.document;a.open();a.write("");a.close();var c="callImmediate"+Math.random(),d="file:"==b.location.protocol?"*":b.location.protocol+
-	"//"+b.location.host,a=w(function(a){if(("*"==d||a.origin==d)&&a.data==c)this.port1.onmessage()},this);b.addEventListener("message",a,!1);this.port1={};this.port2={postMessage:function(){b.postMessage(c,d)}}});if("undefined"!==typeof a&&-1==F.indexOf("Trident")&&-1==F.indexOf("MSIE")){var b=new a,c={},d=c;b.port1.onmessage=function(){if(void 0!==c.next){c=c.next;var a=c.F;c.F=null;a()}};return function(a){d.next={F:a};d=d.next;b.port2.postMessage(0)}}return"undefined"!==typeof document&&"onreadystatechange"in
-	document.createElement("SCRIPT")?function(a){var b=document.createElement("SCRIPT");b.onreadystatechange=function(){b.onreadystatechange=null;b.parentNode.removeChild(b);b=null;a();a=null};document.documentElement.appendChild(b)}:function(a){q.setTimeout(a,0)}};var H=function(){this.v=this.f=null},ma=new E(function(){return new I},function(a){a.reset()},100);H.prototype.add=function(a,b){var c=ma.get();c.set(a,b);this.v?this.v.next=c:(C(!this.f),this.f=c);this.v=c};H.prototype.remove=function(){var a=null;this.f&&(a=this.f,this.f=this.f.next,this.f||(this.v=null),a.next=null);return a};var I=function(){this.next=this.scope=this.B=null};I.prototype.set=function(a,b){this.B=a;this.scope=b;this.next=null};
-	I.prototype.reset=function(){this.next=this.scope=this.B=null};var M=function(a,b){J||na();L||(J(),L=!0);oa.add(a,b)},J,na=function(){var a=q.Promise;if(-1!=String(a).indexOf("[native code]")){var b=a.resolve(void 0);J=function(){b.then(pa)}}else J=function(){var a=pa;!v(q.setImmediate)||q.Window&&q.Window.prototype&&-1==F.indexOf("Edge")&&q.Window.prototype.setImmediate==q.setImmediate?(G||(G=la()),G(a)):q.setImmediate(a)}},L=!1,oa=new H,pa=function(){for(var a;a=oa.remove();){try{a.B.call(a.scope)}catch(b){ka(b)}ma.put(a)}L=!1};var O=function(a,b){this.b=0;this.K=void 0;this.j=this.g=this.u=null;this.m=this.A=!1;if(a!=r)try{var c=this;a.call(b,function(a){N(c,2,a)},function(a){try{if(a instanceof Error)throw a;throw Error("Promise rejected.");}catch(e){}N(c,3,a)})}catch(d){N(this,3,d)}},qa=function(){this.next=this.context=this.h=this.c=this.child=null;this.w=!1};qa.prototype.reset=function(){this.context=this.h=this.c=this.child=null;this.w=!1};
-	var ra=new E(function(){return new qa},function(a){a.reset()},100),sa=function(a,b,c){var d=ra.get();d.c=a;d.h=b;d.context=c;return d},ua=function(a,b,c){ta(a,b,c,null)||M(x(b,a))};O.prototype.then=function(a,b,c){null!=a&&D(a,"opt_onFulfilled should be a function.");null!=b&&D(b,"opt_onRejected should be a function. Did you pass opt_context as the second argument instead of the third?");return va(this,v(a)?a:null,v(b)?b:null,c)};O.prototype.then=O.prototype.then;O.prototype.$goog_Thenable=!0;
-	O.prototype.X=function(a,b){return va(this,null,a,b)};var xa=function(a,b){a.g||2!=a.b&&3!=a.b||wa(a);C(null!=b.c);a.j?a.j.next=b:a.g=b;a.j=b},va=function(a,b,c,d){var e=sa(null,null,null);e.child=new O(function(a,g){e.c=b?function(c){try{var e=b.call(d,c);a(e)}catch(K){g(K)}}:a;e.h=c?function(b){try{var e=c.call(d,b);a(e)}catch(K){g(K)}}:g});e.child.u=a;xa(a,e);return e.child};O.prototype.Y=function(a){C(1==this.b);this.b=0;N(this,2,a)};O.prototype.Z=function(a){C(1==this.b);this.b=0;N(this,3,a)};
-	var N=function(a,b,c){0==a.b&&(a===c&&(b=3,c=new TypeError("Promise cannot resolve to itself")),a.b=1,ta(c,a.Y,a.Z,a)||(a.K=c,a.b=b,a.u=null,wa(a),3!=b||ya(a,c)))},ta=function(a,b,c,d){if(a instanceof O)return null!=b&&D(b,"opt_onFulfilled should be a function."),null!=c&&D(c,"opt_onRejected should be a function. Did you pass opt_context as the second argument instead of the third?"),xa(a,sa(b||r,c||null,d)),!0;var e;if(a)try{e=!!a.$goog_Thenable}catch(g){e=!1}else e=!1;if(e)return a.then(b,c,d),
-	!0;e=typeof a;if("object"==e&&null!=a||"function"==e)try{var f=a.then;if(v(f))return za(a,f,b,c,d),!0}catch(g){return c.call(d,g),!0}return!1},za=function(a,b,c,d,e){var f=!1,g=function(a){f||(f=!0,c.call(e,a))},k=function(a){f||(f=!0,d.call(e,a))};try{b.call(a,g,k)}catch(p){k(p)}},wa=function(a){a.A||(a.A=!0,M(a.O,a))},Aa=function(a){var b=null;a.g&&(b=a.g,a.g=b.next,b.next=null);a.g||(a.j=null);null!=b&&C(null!=b.c);return b};
-	O.prototype.O=function(){for(var a;a=Aa(this);){var b=this.b,c=this.K;if(3==b&&a.h&&!a.w){var d;for(d=this;d&&d.m;d=d.u)d.m=!1}if(a.child)a.child.u=null,Ba(a,b,c);else try{a.w?a.c.call(a.context):Ba(a,b,c)}catch(e){Ca.call(null,e)}ra.put(a)}this.A=!1};var Ba=function(a,b,c){2==b?a.c.call(a.context,c):a.h&&a.h.call(a.context,c)},ya=function(a,b){a.m=!0;M(function(){a.m&&Ca.call(null,b)})},Ca=ka;function P(a,b){if(!(b instanceof Object))return b;switch(b.constructor){case Date:return new Date(b.getTime());case Object:void 0===a&&(a={});break;case Array:a=[];break;default:return b}for(var c in b)b.hasOwnProperty(c)&&(a[c]=P(a[c],b[c]));return a};O.all=function(a){return new O(function(b,c){var d=a.length,e=[];if(d)for(var f=function(a,c){d--;e[a]=c;0==d&&b(e)},g=function(a){c(a)},k=0,p;k<a.length;k++)p=a[k],ua(p,x(f,k),g);else b(e)})};O.resolve=function(a){if(a instanceof O)return a;var b=new O(r);N(b,2,a);return b};O.reject=function(a){return new O(function(b,c){c(a)})};O.prototype["catch"]=O.prototype.X;var Q=O;"undefined"!==typeof Promise&&(Q=Promise);var Da=Q;function Ea(a,b){a=new R(a,b);return a.subscribe.bind(a)}var R=function(a,b){var c=this;this.a=[];this.J=0;this.task=Da.resolve();this.l=!1;this.D=b;this.task.then(function(){a(c)}).catch(function(a){c.error(a)})};R.prototype.next=function(a){S(this,function(b){b.next(a)})};R.prototype.error=function(a){S(this,function(b){b.error(a)});this.close(a)};R.prototype.complete=function(){S(this,function(a){a.complete()});this.close()};
-	R.prototype.subscribe=function(a,b,c){var d=this,e;if(void 0===a&&void 0===b&&void 0===c)throw Error("Missing Observer.");e=Fa(a)?a:{next:a,error:b,complete:c};void 0===e.next&&(e.next=T);void 0===e.error&&(e.error=T);void 0===e.complete&&(e.complete=T);a=this.$.bind(this,this.a.length);this.l&&this.task.then(function(){try{d.G?e.error(d.G):e.complete()}catch(f){}});this.a.push(e);return a};
-	R.prototype.$=function(a){void 0!==this.a&&void 0!==this.a[a]&&(delete this.a[a],--this.J,0===this.J&&void 0!==this.D&&this.D(this))};var S=function(a,b){if(!a.l)for(var c=0;c<a.a.length;c++)Ga(a,c,b)},Ga=function(a,b,c){a.task.then(function(){if(void 0!==a.a&&void 0!==a.a[b])try{c(a.a[b])}catch(d){}})};R.prototype.close=function(a){var b=this;this.l||(this.l=!0,void 0!==a&&(this.G=a),this.task.then(function(){b.a=void 0;b.D=void 0}))};
-	function Fa(a){if("object"!==typeof a||null===a)return!1;var b;b=["next","error","complete"];n();var c=b[Symbol.iterator];b=c?c.call(b):m(b);for(c=b.next();!c.done;c=b.next())if(c=c.value,c in a&&"function"===typeof a[c])return!0;return!1}function T(){};var Ha=Error.captureStackTrace,V=function(a,b){this.code=a;this.message=b;if(Ha)Ha(this,U.prototype.create);else{var c=Error.apply(this,arguments);this.name="FirebaseError";Object.defineProperty(this,"stack",{get:function(){return c.stack}})}};V.prototype=Object.create(Error.prototype);V.prototype.constructor=V;V.prototype.name="FirebaseError";var U=function(a,b,c){this.V=a;this.W=b;this.N=c;this.pattern=/\{\$([^}]+)}/g};
-	U.prototype.create=function(a,b){void 0===b&&(b={});var c=this.N[a];a=this.V+"/"+a;var c=void 0===c?"Error":c.replace(this.pattern,function(a,c){a=b[c];return void 0!==a?a.toString():"<"+c+"?>"}),c=this.W+": "+c+" ("+a+").",c=new V(a,c),d;for(d in b)b.hasOwnProperty(d)&&"_"!==d.slice(-1)&&(c[d]=b[d]);return c};var W=Q,X=function(a,b,c){var d=this;this.H=c;this.I=!1;this.i={};this.C=b;this.T=P(void 0,a);Object.keys(c.INTERNAL.factories).forEach(function(a){var b=c.INTERNAL.useAsService(d,a);null!==b&&(b=d.R.bind(d,b),d[a]=b)})};X.prototype.delete=function(){var a=this;return(new W(function(b){Y(a);b()})).then(function(){a.H.INTERNAL.removeApp(a.C);return W.all(Object.keys(a.i).map(function(b){return a.i[b].INTERNAL.delete()}))}).then(function(){a.I=!0;a.i={}})};
-	X.prototype.R=function(a){Y(this);void 0===this.i[a]&&(this.i[a]=this.H.INTERNAL.factories[a](this,this.P.bind(this)));return this.i[a]};X.prototype.P=function(a){P(this,a)};var Y=function(a){a.I&&Z(Ia("deleted",{name:a.C}))};h.Object.defineProperties(X.prototype,{name:{configurable:!0,enumerable:!0,get:function(){Y(this);return this.C}},options:{configurable:!0,enumerable:!0,get:function(){Y(this);return this.T}}});X.prototype.name&&X.prototype.options||X.prototype.delete||console.log("dc");
-	function Ja(){function a(a){a=a||"[DEFAULT]";var b=d[a];void 0===b&&Z("noApp",{name:a});return b}function b(a,b){Object.keys(e).forEach(function(d){d=c(a,d);if(null!==d&&f[d])f[d](b,a)})}function c(a,b){if("serverAuth"===b)return null;var c=b;a=a.options;"auth"===b&&(a.serviceAccount||a.credential)&&(c="serverAuth","serverAuth"in e||Z("serverAuthMissing"));return c}var d={},e={},f={},g={__esModule:!0,initializeApp:function(a,c){void 0===c?c="[DEFAULT]":"string"===typeof c&&""!==c||Z("bad-app-name",
-	{name:c+""});void 0!==d[c]&&Z("dupApp",{name:c});a=new X(a,c,g);d[c]=a;b(a,"create");void 0!=a.INTERNAL&&void 0!=a.INTERNAL.getToken||P(a,{INTERNAL:{getToken:function(){return W.resolve(null)},addAuthTokenListener:function(){},removeAuthTokenListener:function(){}}});return a},app:a,apps:null,Promise:W,SDK_VERSION:"0.0.0",INTERNAL:{registerService:function(b,c,d,u){e[b]&&Z("dupService",{name:b});e[b]=c;u&&(f[b]=u);c=function(c){void 0===c&&(c=a());return c[b]()};void 0!==d&&P(c,d);return g[b]=c},createFirebaseNamespace:Ja,
-	extendNamespace:function(a){P(g,a)},createSubscribe:Ea,ErrorFactory:U,removeApp:function(a){b(d[a],"delete");delete d[a]},factories:e,useAsService:c,Promise:O,deepExtend:P}};g["default"]=g;Object.defineProperty(g,"apps",{get:function(){return Object.keys(d).map(function(a){return d[a]})}});a.App=X;return g}function Z(a,b){throw Error(Ia(a,b));}
-	function Ia(a,b){b=b||{};b={noApp:"No Firebase App '"+b.name+"' has been created - call Firebase App.initializeApp().","bad-app-name":"Illegal App name: '"+b.name+"'.",dupApp:"Firebase App named '"+b.name+"' already exists.",deleted:"Firebase App named '"+b.name+"' already deleted.",dupService:"Firebase Service named '"+b.name+"' already registered.",serverAuthMissing:"Initializing the Firebase SDK with a service account is only allowed in a Node.js environment. On client devices, you should instead initialize the SDK with an api key and auth domain."}[a];
-	return void 0===b?"Application Error: ("+a+")":b};"undefined"!==typeof firebase&&(firebase=Ja()); })();
-	firebase.SDK_VERSION = "3.4.1";
-	module.exports = firebase;
-
-	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
-
-/***/ },
-/* 319 */
+/* 316 */
 /***/ function(module, exports, __webpack_require__) {
 
-	'use strict';
-
-	var _ = __webpack_require__(299);
-
-	module.exports = function (source, name) {
-	  return source.filter(function (e) {
-	    return _.has(e, name);
-	  }).map(function (e) {
-	    return e[name];
-	  });
-	};
-
-/***/ },
-/* 320 */
-/***/ function(module, exports, __webpack_require__) {
-
-	var firebase = __webpack_require__(318);
+	var firebase = __webpack_require__(317);
 	/*! @license Firebase v3.4.1
 	    Build: 3.4.1-rc.2
 	    Terms: https://developers.google.com/terms */
@@ -30348,10 +30436,47 @@
 
 
 /***/ },
-/* 321 */
+/* 317 */
+/***/ function(module, exports) {
+
+	/* WEBPACK VAR INJECTION */(function(global) {/*! @license Firebase v3.4.1
+	    Build: 3.4.1-rc.2
+	    Terms: https://developers.google.com/terms */
+	var firebase = null; (function() { var aa="function"==typeof Object.defineProperties?Object.defineProperty:function(a,b,c){if(c.get||c.set)throw new TypeError("ES3 does not support getters and setters.");a!=Array.prototype&&a!=Object.prototype&&(a[b]=c.value)},h="undefined"!=typeof window&&window===this?this:"undefined"!=typeof global&&null!=global?global:this,l=function(){l=function(){};h.Symbol||(h.Symbol=ba)},ca=0,ba=function(a){return"jscomp_symbol_"+(a||"")+ca++},n=function(){l();var a=h.Symbol.iterator;a||(a=h.Symbol.iterator=
+	h.Symbol("iterator"));"function"!=typeof Array.prototype[a]&&aa(Array.prototype,a,{configurable:!0,writable:!0,value:function(){return m(this)}});n=function(){}},m=function(a){var b=0;return da(function(){return b<a.length?{done:!1,value:a[b++]}:{done:!0}})},da=function(a){n();a={next:a};a[h.Symbol.iterator]=function(){return this};return a},q=this,r=function(){},t=function(a){var b=typeof a;if("object"==b)if(a){if(a instanceof Array)return"array";if(a instanceof Object)return b;var c=Object.prototype.toString.call(a);
+	if("[object Window]"==c)return"object";if("[object Array]"==c||"number"==typeof a.length&&"undefined"!=typeof a.splice&&"undefined"!=typeof a.propertyIsEnumerable&&!a.propertyIsEnumerable("splice"))return"array";if("[object Function]"==c||"undefined"!=typeof a.call&&"undefined"!=typeof a.propertyIsEnumerable&&!a.propertyIsEnumerable("call"))return"function"}else return"null";else if("function"==b&&"undefined"==typeof a.call)return"object";return b},v=function(a){return"function"==t(a)},ea=function(a,
+	b,c){return a.call.apply(a.bind,arguments)},fa=function(a,b,c){if(!a)throw Error();if(2<arguments.length){var d=Array.prototype.slice.call(arguments,2);return function(){var c=Array.prototype.slice.call(arguments);Array.prototype.unshift.apply(c,d);return a.apply(b,c)}}return function(){return a.apply(b,arguments)}},w=function(a,b,c){w=Function.prototype.bind&&-1!=Function.prototype.bind.toString().indexOf("native code")?ea:fa;return w.apply(null,arguments)},x=function(a,b){var c=Array.prototype.slice.call(arguments,
+	1);return function(){var b=c.slice();b.push.apply(b,arguments);return a.apply(this,b)}},y=function(a,b){function c(){}c.prototype=b.prototype;a.ga=b.prototype;a.prototype=new c;a.prototype.constructor=a;a.fa=function(a,c,f){for(var d=Array(arguments.length-2),e=2;e<arguments.length;e++)d[e-2]=arguments[e];return b.prototype[c].apply(a,d)}};var z;z="undefined"!==typeof window?window:"undefined"!==typeof self?self:global;function __extends(a,b){function c(){this.constructor=a}for(var d in b)b.hasOwnProperty(d)&&(a[d]=b[d]);a.prototype=null===b?Object.create(b):(c.prototype=b.prototype,new c)}
+	function __decorate(a,b,c,d){var e=arguments.length,f=3>e?b:null===d?d=Object.getOwnPropertyDescriptor(b,c):d,g;g=z.Reflect;if("object"===typeof g&&"function"===typeof g.decorate)f=g.decorate(a,b,c,d);else for(var k=a.length-1;0<=k;k--)if(g=a[k])f=(3>e?g(f):3<e?g(b,c,f):g(b,c))||f;return 3<e&&f&&Object.defineProperty(b,c,f),f}function __metadata(a,b){var c=z.Reflect;if("object"===typeof c&&"function"===typeof c.metadata)return c.metadata(a,b)}
+	var __param=function(a,b){return function(c,d){b(c,d,a)}},__awaiter=function(a,b,c,d){return new (c||(c=Promise))(function(e,f){function g(a){try{p(d.next(a))}catch(u){f(u)}}function k(a){try{p(d.throw(a))}catch(u){f(u)}}function p(a){a.done?e(a.value):(new c(function(b){b(a.value)})).then(g,k)}p((d=d.apply(a,b)).next())})};"undefined"!==typeof z.L&&z.L||(z.ca=__extends,z.ba=__decorate,z.da=__metadata,z.ea=__param,z.aa=__awaiter);var A=function(a){if(Error.captureStackTrace)Error.captureStackTrace(this,A);else{var b=Error().stack;b&&(this.stack=b)}a&&(this.message=String(a))};y(A,Error);A.prototype.name="CustomError";var ga=function(a,b){for(var c=a.split("%s"),d="",e=Array.prototype.slice.call(arguments,1);e.length&&1<c.length;)d+=c.shift()+e.shift();return d+c.join("%s")};var B=function(a,b){b.unshift(a);A.call(this,ga.apply(null,b));b.shift()};y(B,A);B.prototype.name="AssertionError";var ha=function(a,b,c,d){var e="Assertion failed";if(c)var e=e+(": "+c),f=d;else a&&(e+=": "+a,f=b);throw new B(""+e,f||[]);},C=function(a,b,c){a||ha("",null,b,Array.prototype.slice.call(arguments,2))},D=function(a,b,c){v(a)||ha("Expected function but got %s: %s.",[t(a),a],b,Array.prototype.slice.call(arguments,2))};var E=function(a,b,c){this.S=c;this.M=a;this.U=b;this.s=0;this.o=null};E.prototype.get=function(){var a;0<this.s?(this.s--,a=this.o,this.o=a.next,a.next=null):a=this.M();return a};E.prototype.put=function(a){this.U(a);this.s<this.S&&(this.s++,a.next=this.o,this.o=a)};var F;a:{var ia=q.navigator;if(ia){var ja=ia.userAgent;if(ja){F=ja;break a}}F=""};var ka=function(a){q.setTimeout(function(){throw a;},0)},G,la=function(){var a=q.MessageChannel;"undefined"===typeof a&&"undefined"!==typeof window&&window.postMessage&&window.addEventListener&&-1==F.indexOf("Presto")&&(a=function(){var a=document.createElement("IFRAME");a.style.display="none";a.src="";document.documentElement.appendChild(a);var b=a.contentWindow,a=b.document;a.open();a.write("");a.close();var c="callImmediate"+Math.random(),d="file:"==b.location.protocol?"*":b.location.protocol+
+	"//"+b.location.host,a=w(function(a){if(("*"==d||a.origin==d)&&a.data==c)this.port1.onmessage()},this);b.addEventListener("message",a,!1);this.port1={};this.port2={postMessage:function(){b.postMessage(c,d)}}});if("undefined"!==typeof a&&-1==F.indexOf("Trident")&&-1==F.indexOf("MSIE")){var b=new a,c={},d=c;b.port1.onmessage=function(){if(void 0!==c.next){c=c.next;var a=c.F;c.F=null;a()}};return function(a){d.next={F:a};d=d.next;b.port2.postMessage(0)}}return"undefined"!==typeof document&&"onreadystatechange"in
+	document.createElement("SCRIPT")?function(a){var b=document.createElement("SCRIPT");b.onreadystatechange=function(){b.onreadystatechange=null;b.parentNode.removeChild(b);b=null;a();a=null};document.documentElement.appendChild(b)}:function(a){q.setTimeout(a,0)}};var H=function(){this.v=this.f=null},ma=new E(function(){return new I},function(a){a.reset()},100);H.prototype.add=function(a,b){var c=ma.get();c.set(a,b);this.v?this.v.next=c:(C(!this.f),this.f=c);this.v=c};H.prototype.remove=function(){var a=null;this.f&&(a=this.f,this.f=this.f.next,this.f||(this.v=null),a.next=null);return a};var I=function(){this.next=this.scope=this.B=null};I.prototype.set=function(a,b){this.B=a;this.scope=b;this.next=null};
+	I.prototype.reset=function(){this.next=this.scope=this.B=null};var M=function(a,b){J||na();L||(J(),L=!0);oa.add(a,b)},J,na=function(){var a=q.Promise;if(-1!=String(a).indexOf("[native code]")){var b=a.resolve(void 0);J=function(){b.then(pa)}}else J=function(){var a=pa;!v(q.setImmediate)||q.Window&&q.Window.prototype&&-1==F.indexOf("Edge")&&q.Window.prototype.setImmediate==q.setImmediate?(G||(G=la()),G(a)):q.setImmediate(a)}},L=!1,oa=new H,pa=function(){for(var a;a=oa.remove();){try{a.B.call(a.scope)}catch(b){ka(b)}ma.put(a)}L=!1};var O=function(a,b){this.b=0;this.K=void 0;this.j=this.g=this.u=null;this.m=this.A=!1;if(a!=r)try{var c=this;a.call(b,function(a){N(c,2,a)},function(a){try{if(a instanceof Error)throw a;throw Error("Promise rejected.");}catch(e){}N(c,3,a)})}catch(d){N(this,3,d)}},qa=function(){this.next=this.context=this.h=this.c=this.child=null;this.w=!1};qa.prototype.reset=function(){this.context=this.h=this.c=this.child=null;this.w=!1};
+	var ra=new E(function(){return new qa},function(a){a.reset()},100),sa=function(a,b,c){var d=ra.get();d.c=a;d.h=b;d.context=c;return d},ua=function(a,b,c){ta(a,b,c,null)||M(x(b,a))};O.prototype.then=function(a,b,c){null!=a&&D(a,"opt_onFulfilled should be a function.");null!=b&&D(b,"opt_onRejected should be a function. Did you pass opt_context as the second argument instead of the third?");return va(this,v(a)?a:null,v(b)?b:null,c)};O.prototype.then=O.prototype.then;O.prototype.$goog_Thenable=!0;
+	O.prototype.X=function(a,b){return va(this,null,a,b)};var xa=function(a,b){a.g||2!=a.b&&3!=a.b||wa(a);C(null!=b.c);a.j?a.j.next=b:a.g=b;a.j=b},va=function(a,b,c,d){var e=sa(null,null,null);e.child=new O(function(a,g){e.c=b?function(c){try{var e=b.call(d,c);a(e)}catch(K){g(K)}}:a;e.h=c?function(b){try{var e=c.call(d,b);a(e)}catch(K){g(K)}}:g});e.child.u=a;xa(a,e);return e.child};O.prototype.Y=function(a){C(1==this.b);this.b=0;N(this,2,a)};O.prototype.Z=function(a){C(1==this.b);this.b=0;N(this,3,a)};
+	var N=function(a,b,c){0==a.b&&(a===c&&(b=3,c=new TypeError("Promise cannot resolve to itself")),a.b=1,ta(c,a.Y,a.Z,a)||(a.K=c,a.b=b,a.u=null,wa(a),3!=b||ya(a,c)))},ta=function(a,b,c,d){if(a instanceof O)return null!=b&&D(b,"opt_onFulfilled should be a function."),null!=c&&D(c,"opt_onRejected should be a function. Did you pass opt_context as the second argument instead of the third?"),xa(a,sa(b||r,c||null,d)),!0;var e;if(a)try{e=!!a.$goog_Thenable}catch(g){e=!1}else e=!1;if(e)return a.then(b,c,d),
+	!0;e=typeof a;if("object"==e&&null!=a||"function"==e)try{var f=a.then;if(v(f))return za(a,f,b,c,d),!0}catch(g){return c.call(d,g),!0}return!1},za=function(a,b,c,d,e){var f=!1,g=function(a){f||(f=!0,c.call(e,a))},k=function(a){f||(f=!0,d.call(e,a))};try{b.call(a,g,k)}catch(p){k(p)}},wa=function(a){a.A||(a.A=!0,M(a.O,a))},Aa=function(a){var b=null;a.g&&(b=a.g,a.g=b.next,b.next=null);a.g||(a.j=null);null!=b&&C(null!=b.c);return b};
+	O.prototype.O=function(){for(var a;a=Aa(this);){var b=this.b,c=this.K;if(3==b&&a.h&&!a.w){var d;for(d=this;d&&d.m;d=d.u)d.m=!1}if(a.child)a.child.u=null,Ba(a,b,c);else try{a.w?a.c.call(a.context):Ba(a,b,c)}catch(e){Ca.call(null,e)}ra.put(a)}this.A=!1};var Ba=function(a,b,c){2==b?a.c.call(a.context,c):a.h&&a.h.call(a.context,c)},ya=function(a,b){a.m=!0;M(function(){a.m&&Ca.call(null,b)})},Ca=ka;function P(a,b){if(!(b instanceof Object))return b;switch(b.constructor){case Date:return new Date(b.getTime());case Object:void 0===a&&(a={});break;case Array:a=[];break;default:return b}for(var c in b)b.hasOwnProperty(c)&&(a[c]=P(a[c],b[c]));return a};O.all=function(a){return new O(function(b,c){var d=a.length,e=[];if(d)for(var f=function(a,c){d--;e[a]=c;0==d&&b(e)},g=function(a){c(a)},k=0,p;k<a.length;k++)p=a[k],ua(p,x(f,k),g);else b(e)})};O.resolve=function(a){if(a instanceof O)return a;var b=new O(r);N(b,2,a);return b};O.reject=function(a){return new O(function(b,c){c(a)})};O.prototype["catch"]=O.prototype.X;var Q=O;"undefined"!==typeof Promise&&(Q=Promise);var Da=Q;function Ea(a,b){a=new R(a,b);return a.subscribe.bind(a)}var R=function(a,b){var c=this;this.a=[];this.J=0;this.task=Da.resolve();this.l=!1;this.D=b;this.task.then(function(){a(c)}).catch(function(a){c.error(a)})};R.prototype.next=function(a){S(this,function(b){b.next(a)})};R.prototype.error=function(a){S(this,function(b){b.error(a)});this.close(a)};R.prototype.complete=function(){S(this,function(a){a.complete()});this.close()};
+	R.prototype.subscribe=function(a,b,c){var d=this,e;if(void 0===a&&void 0===b&&void 0===c)throw Error("Missing Observer.");e=Fa(a)?a:{next:a,error:b,complete:c};void 0===e.next&&(e.next=T);void 0===e.error&&(e.error=T);void 0===e.complete&&(e.complete=T);a=this.$.bind(this,this.a.length);this.l&&this.task.then(function(){try{d.G?e.error(d.G):e.complete()}catch(f){}});this.a.push(e);return a};
+	R.prototype.$=function(a){void 0!==this.a&&void 0!==this.a[a]&&(delete this.a[a],--this.J,0===this.J&&void 0!==this.D&&this.D(this))};var S=function(a,b){if(!a.l)for(var c=0;c<a.a.length;c++)Ga(a,c,b)},Ga=function(a,b,c){a.task.then(function(){if(void 0!==a.a&&void 0!==a.a[b])try{c(a.a[b])}catch(d){}})};R.prototype.close=function(a){var b=this;this.l||(this.l=!0,void 0!==a&&(this.G=a),this.task.then(function(){b.a=void 0;b.D=void 0}))};
+	function Fa(a){if("object"!==typeof a||null===a)return!1;var b;b=["next","error","complete"];n();var c=b[Symbol.iterator];b=c?c.call(b):m(b);for(c=b.next();!c.done;c=b.next())if(c=c.value,c in a&&"function"===typeof a[c])return!0;return!1}function T(){};var Ha=Error.captureStackTrace,V=function(a,b){this.code=a;this.message=b;if(Ha)Ha(this,U.prototype.create);else{var c=Error.apply(this,arguments);this.name="FirebaseError";Object.defineProperty(this,"stack",{get:function(){return c.stack}})}};V.prototype=Object.create(Error.prototype);V.prototype.constructor=V;V.prototype.name="FirebaseError";var U=function(a,b,c){this.V=a;this.W=b;this.N=c;this.pattern=/\{\$([^}]+)}/g};
+	U.prototype.create=function(a,b){void 0===b&&(b={});var c=this.N[a];a=this.V+"/"+a;var c=void 0===c?"Error":c.replace(this.pattern,function(a,c){a=b[c];return void 0!==a?a.toString():"<"+c+"?>"}),c=this.W+": "+c+" ("+a+").",c=new V(a,c),d;for(d in b)b.hasOwnProperty(d)&&"_"!==d.slice(-1)&&(c[d]=b[d]);return c};var W=Q,X=function(a,b,c){var d=this;this.H=c;this.I=!1;this.i={};this.C=b;this.T=P(void 0,a);Object.keys(c.INTERNAL.factories).forEach(function(a){var b=c.INTERNAL.useAsService(d,a);null!==b&&(b=d.R.bind(d,b),d[a]=b)})};X.prototype.delete=function(){var a=this;return(new W(function(b){Y(a);b()})).then(function(){a.H.INTERNAL.removeApp(a.C);return W.all(Object.keys(a.i).map(function(b){return a.i[b].INTERNAL.delete()}))}).then(function(){a.I=!0;a.i={}})};
+	X.prototype.R=function(a){Y(this);void 0===this.i[a]&&(this.i[a]=this.H.INTERNAL.factories[a](this,this.P.bind(this)));return this.i[a]};X.prototype.P=function(a){P(this,a)};var Y=function(a){a.I&&Z(Ia("deleted",{name:a.C}))};h.Object.defineProperties(X.prototype,{name:{configurable:!0,enumerable:!0,get:function(){Y(this);return this.C}},options:{configurable:!0,enumerable:!0,get:function(){Y(this);return this.T}}});X.prototype.name&&X.prototype.options||X.prototype.delete||console.log("dc");
+	function Ja(){function a(a){a=a||"[DEFAULT]";var b=d[a];void 0===b&&Z("noApp",{name:a});return b}function b(a,b){Object.keys(e).forEach(function(d){d=c(a,d);if(null!==d&&f[d])f[d](b,a)})}function c(a,b){if("serverAuth"===b)return null;var c=b;a=a.options;"auth"===b&&(a.serviceAccount||a.credential)&&(c="serverAuth","serverAuth"in e||Z("serverAuthMissing"));return c}var d={},e={},f={},g={__esModule:!0,initializeApp:function(a,c){void 0===c?c="[DEFAULT]":"string"===typeof c&&""!==c||Z("bad-app-name",
+	{name:c+""});void 0!==d[c]&&Z("dupApp",{name:c});a=new X(a,c,g);d[c]=a;b(a,"create");void 0!=a.INTERNAL&&void 0!=a.INTERNAL.getToken||P(a,{INTERNAL:{getToken:function(){return W.resolve(null)},addAuthTokenListener:function(){},removeAuthTokenListener:function(){}}});return a},app:a,apps:null,Promise:W,SDK_VERSION:"0.0.0",INTERNAL:{registerService:function(b,c,d,u){e[b]&&Z("dupService",{name:b});e[b]=c;u&&(f[b]=u);c=function(c){void 0===c&&(c=a());return c[b]()};void 0!==d&&P(c,d);return g[b]=c},createFirebaseNamespace:Ja,
+	extendNamespace:function(a){P(g,a)},createSubscribe:Ea,ErrorFactory:U,removeApp:function(a){b(d[a],"delete");delete d[a]},factories:e,useAsService:c,Promise:O,deepExtend:P}};g["default"]=g;Object.defineProperty(g,"apps",{get:function(){return Object.keys(d).map(function(a){return d[a]})}});a.App=X;return g}function Z(a,b){throw Error(Ia(a,b));}
+	function Ia(a,b){b=b||{};b={noApp:"No Firebase App '"+b.name+"' has been created - call Firebase App.initializeApp().","bad-app-name":"Illegal App name: '"+b.name+"'.",dupApp:"Firebase App named '"+b.name+"' already exists.",deleted:"Firebase App named '"+b.name+"' already deleted.",dupService:"Firebase Service named '"+b.name+"' already registered.",serverAuthMissing:"Initializing the Firebase SDK with a service account is only allowed in a Node.js environment. On client devices, you should instead initialize the SDK with an api key and auth domain."}[a];
+	return void 0===b?"Application Error: ("+a+")":b};"undefined"!==typeof firebase&&(firebase=Ja()); })();
+	firebase.SDK_VERSION = "3.4.1";
+	module.exports = firebase;
+
+	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 318 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var firebase = __webpack_require__(318);
+	var firebase = __webpack_require__(317);
 	/*! @license Firebase v3.4.1
 	    Build: 3.4.1-rc.2
 	    Terms: https://developers.google.com/terms */
@@ -30600,42 +30725,83 @@
 
 
 /***/ },
-/* 322 */
+/* 319 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
 
-	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+	Object.defineProperty(exports, "__esModule", {
+	  value: true
+	});
 
-	var _ = __webpack_require__(299),
-	    ls = __webpack_require__(323),
-	    event$ = __webpack_require__(319),
-	    Kefir = __webpack_require__(305);
+	var _lodash = __webpack_require__(300);
+
+	var _lodash2 = _interopRequireDefault(_lodash);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	exports.default = function (source, name) {
+	  return source.filter(function (e) {
+	    return _lodash2.default.has(e, name);
+	  }).map(function (e) {
+	    return e[name];
+	  });
+	};
+
+/***/ },
+/* 320 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
+	var _lodash = __webpack_require__(300);
+
+	var _lodash2 = _interopRequireDefault(_lodash);
+
+	var _localStorage = __webpack_require__(321);
+
+	var _localStorage2 = _interopRequireDefault(_localStorage);
+
+	var _event$ = __webpack_require__(319);
+
+	var _event$2 = _interopRequireDefault(_event$);
+
+	var _kefir = __webpack_require__(302);
+
+	var _kefir2 = _interopRequireDefault(_kefir);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
 	var roomKey = function roomKey(room) {
 		return 'pk/' + room + '/name';
 	};
 
-	module.exports = function (changes) {
+	exports.default = function (changes) {
 		// store name at pk/$room/name
-		Kefir.combine([event$(changes, 'room').filter(_.isString).map(roomKey), event$(changes, 'name').filter(_.isString)]).sampledBy(event$(changes, 'name')).onValue(function (streams) {
-			return ls.apply(undefined, _toConsumableArray(streams));
+		_kefir2.default.combine([(0, _event$2.default)(changes, 'room').filter(_lodash2.default.isString).map(roomKey), (0, _event$2.default)(changes, 'name').filter(_lodash2.default.isString)]).sampledBy((0, _event$2.default)(changes, 'name')).skipDuplicates(_lodash2.default.isEqual).onValue(function (streams) {
+			return _localStorage2.default.apply(undefined, _toConsumableArray(streams));
 		});
 
 		// emit name when room changes
-		return event$(changes, 'room').filter().map(roomKey).map(ls).map(function (name) {
+		return (0, _event$2.default)(changes, 'room').filter().map(roomKey).map(_localStorage2.default).map(function (name) {
 			return { 'change:name': name };
 		});
 	};
 
 /***/ },
-/* 323 */
+/* 321 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
 
-	var stub = __webpack_require__(324);
-	var tracking = __webpack_require__(325);
+	var stub = __webpack_require__(322);
+	var tracking = __webpack_require__(323);
 	var ls = 'localStorage' in global && global.localStorage ? global.localStorage : stub;
 
 	function accessor (key, value) {
@@ -30678,7 +30844,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 324 */
+/* 322 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -30716,7 +30882,7 @@
 
 
 /***/ },
-/* 325 */
+/* 323 */
 /***/ function(module, exports) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {'use strict';
@@ -30774,6 +30940,50 @@
 	};
 
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
+
+/***/ },
+/* 324 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, "__esModule", {
+		value: true
+	});
+
+	var _lodash = __webpack_require__(300);
+
+	var _lodash2 = _interopRequireDefault(_lodash);
+
+	var _window = __webpack_require__(298);
+
+	var _window2 = _interopRequireDefault(_window);
+
+	var _event$ = __webpack_require__(319);
+
+	var _event$2 = _interopRequireDefault(_event$);
+
+	var _kefir = __webpack_require__(302);
+
+	var _kefir2 = _interopRequireDefault(_kefir);
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+	exports.default = function (changes) {
+		(0, _event$2.default)(changes, 'room').filter(_lodash2.default.isString).filter(function (room) {
+			return room !== _window2.default.location.pathname.substr(1);
+		}).onValue(function (room) {
+			return _window2.default.history.pushState(room, room ? room : 'lobby', '/' + room);
+		});
+
+		return _kefir2.default.fromCallback(function (cb) {
+			return _window2.default.addEventListener('popstate', cb);
+		}).map(function (e) {
+			return e.state;
+		}).map(function (room) {
+			return { 'set:room': room };
+		});
+	};
 
 /***/ }
 /******/ ]);

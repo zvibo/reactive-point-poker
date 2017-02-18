@@ -1,21 +1,13 @@
-'use strict';
+import 'firebase/auth';
+import 'firebase/database';
 
-const _ = require('lodash')
-	, firebase = require('firebase/app')
-	, event$ = require('../lib/event$')
-	, Kefir = require('kefir')
-	;
+import _ from 'lodash';
+import firebase from 'firebase/app';
+import event$ from '../lib/event$';
+import Kefir from 'kefir';
 
-require('firebase/auth');
-require('firebase/database');
-
-const fb$ = reference =>
-	Kefir.fromEvents(reference, 'value').map(
-		snap => ({ [`change:${snap.key}`]: snap.val() })
-	);
-
-module.exports = changes => {
-	let roomRef, userRef;
+export default changes => {
+	let roomRef, userRef, refs = [];
 
 	// init firebase
 	const app$ = event$(changes, 'firebase')
@@ -40,7 +32,7 @@ module.exports = changes => {
 
 	// init room
 	const room$ = app$.map(app => app.database().ref())
-		.combine(event$(changes, 'room').filter(_.isString),
+		.combine(event$(changes, 'room').filter().skipDuplicates(),
 			(db, roomName) => db.child(roomName)
 		).filter();
 
@@ -56,18 +48,27 @@ module.exports = changes => {
 			if(roomRef) roomRef.off();
 			roomRef = room;
 
-			// update user reference
+			// remove user from old room and update user reference
+			if(userRef) userRef.remove();
 			userRef = user;
 			user.onDisconnect().remove();
 
+			// drop old references
+			refs.map(ref => ref.off());
+			refs = [
+				room.child('show_votes'),
+				room.child('users'),
+				room.child('topic'),
+				room.child('votes'),
+				user.child('name'),
+				user.child('vote')
+			];
+
 			// return new streams
-			return Kefir.merge([
-				fb$(room.child('show_votes')),
-				fb$(room.child('topic')),
-				fb$(room.child('votes')),
-				fb$(room.child('users')),
-				fb$(user.child('name')),
-				fb$(user.child('vote'))
-			]);
+			return Kefir.constant(refs).flatten().flatMap(ref =>
+				Kefir.fromEvents(ref, 'value').map(
+					snap => ({ [`change:${snap.key}`]: snap.val() })
+				).skipDuplicates(_.isEqual)
+			);
 		});
 };

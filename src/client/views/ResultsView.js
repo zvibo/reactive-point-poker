@@ -1,10 +1,7 @@
-'use strict';
+import _ from 'lodash';
+import View from '../lib/View';
 
-const _ = require('lodash')
-	, View = require('../lib/View')
-	;
-
-module.exports = class ResultsView extends View {
+export default class ResultsView extends View {
 	constructor(changes) {
 		super(changes, ['users'], stream => {
 			return stream
@@ -34,4 +31,4 @@ module.exports = class ResultsView extends View {
 		}
 		return ['ul'];
 	}
-};
+}

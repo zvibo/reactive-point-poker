@@ -1,5 +1,3 @@
-'use strict';
+import _ from 'lodash';
 
-const _ = require('lodash');
-
-module.exports = (source, name) => source.filter(e => _.has(e, name)).map(e => e[name]);
+export default (source, name) => source.filter(e => _.has(e, name)).map(e => e[name]);
