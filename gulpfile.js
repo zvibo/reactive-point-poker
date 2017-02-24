@@ -1,4 +1,5 @@
-var gulp = require('gulp')
+const gulp = require('gulp')
+	, ejs = require('gulp-ejs')
 	, livereload = require('gulp-livereload')
 	, nodemon = require('gulp-nodemon')
 	, stylus = require('gulp-stylus')
@@ -9,6 +10,8 @@ var gulp = require('gulp')
 	, webpack_config = require('./webpack.config.js')
 	;
 
+const config = name => typeof process.env[name] !== 'undefined' ? process.env[name] : require('./env.json')[name];
+
 gulp.task('css', function() {
 	return gulp.src('src/styl/app.styl')
 		.pipe(stylus({
@@ -16,6 +19,24 @@ gulp.task('css', function() {
 			import: ['nib']
 		}))
 		.pipe(gulp.dest('public/css'))
+		.pipe(livereload());
+});
+
+gulp.task('html', function() {
+	return gulp.src('src/ejs/*.ejs')
+		.pipe(ejs({
+			data: {
+				defaultVotes: config('default_votes'),
+				env: config('NODE_ENV'),
+				firebase: {
+					apiKey: config('FIREBASE_KEY'),
+					authDomain: config('FIREBASE_DOMAIN'),
+					databaseURL: config('FIREBASE_DBURL'),
+					storageBucket: config('FIREBASE_STORE')
+				}
+			}
+		}, {}, { ext: '.html' }))
+		.pipe(gulp.dest('public'))
 		.pipe(livereload());
 });
 
@@ -41,9 +62,10 @@ gulp.task('watch', function() {
 			.pipe(livereload());
 	});
 	gulp.watch('src/styl/**/*.styl', ['css']);
+	gulp.watch('src/server/views/*.ejs', ['html']);
 	gulp.watch('src/img/**/*.svg', ['svg']);
 	gulp.watch('src/client/**/*.js', ['webpack']);
 });
 
-gulp.task('build', ['css', 'svg', 'webpack']);
+gulp.task('build', ['css', 'html', 'svg', 'webpack']);
 gulp.task('default', ['build', 'watch']);
