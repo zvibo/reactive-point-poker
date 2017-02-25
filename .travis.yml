@@ -1,7 +1,13 @@
 language: node_js
 node_js: "node"
-before_script: npm install -g gulp
+install:
+  - npm install -g gulp
+  - npm install -g firebase-tools
 script: gulp build
+after_success:
+  - sed -i 's/FIREBASE_NAME/'$FIREBASE_NAME'/g' .firebaserc
+  - firebase deploy --token $FIREBASE_TOKEN
+deploy:
 cache:
   directories:
   - $HOME/.npm

@@ -1,0 +1,31 @@
+{
+  "rules": {
+    ".read": "auth !== null",
+    ".write": "auth !== null",
+    "$room_id": {
+      "show_votes": {
+        ".validate": "newData.isBoolean()"
+      },
+      "topic": {
+        ".write": "data.parent().child('users/'+auth.uid).exists()",
+        ".validate": "newData.isString() && newData.val().length < 140"
+      },
+      "users": {
+        "$user_id": {
+          "name": {
+            ".write": "auth.uid === $user_id",
+            ".validate": "newData.isString() && newData.val().length < 32"
+          },
+          "vote": {
+            ".validate": "newData.isString()"
+          }
+        }
+      },
+      "votes": {
+        "$vote": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length < 4"
+        }
+      }
+    }
+  }
+}
