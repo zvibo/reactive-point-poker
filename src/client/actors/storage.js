@@ -1,11 +1,11 @@
-import _ from 'lodash';
+import isString from 'lodash/isString';
 import ls from 'local-storage';
 import event$ from '../lib/event$';
 
 export default changes => {
 	// store name at pk/name
 	event$(changes, 'name')
-		.filter(_.isString)
+		.filter(isString)
 		.skipDuplicates()
 		.onValue(name => ls('pk/name', name));
 

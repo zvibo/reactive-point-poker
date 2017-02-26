@@ -1,4 +1,5 @@
-import _ from 'lodash';
+import size from 'lodash/size';
+import values from 'lodash/values';
 import View from '../lib/View';
 
 module.exports = class UsersView extends View {
@@ -8,8 +9,8 @@ module.exports = class UsersView extends View {
 
 	_render() {
 		if(this._data.users) {
-			const num = _.size(this._data.users);
-			const users = _.values(this._data.users);
+			const num = size(this._data.users);
+			const users = values(this._data.users);
 
 			return ['ul',
 				users.map((u,i) => {

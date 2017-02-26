@@ -1,7 +1,12 @@
 import 'firebase/auth';
 import 'firebase/database';
 
-import _ from 'lodash';
+import isArray from 'lodash/isArray';
+import isBoolean from 'lodash/isBoolean';
+import isEqual from 'lodash/isEqual';
+import isNull from 'lodash/isNull';
+import isObject from 'lodash/isObject';
+import isString from 'lodash/isString';
 import firebase from 'firebase/app';
 import event$ from '../lib/event$';
 import Kefir from 'kefir';
@@ -11,7 +16,7 @@ export default changes => {
 
 	// init firebase
 	const app$ = event$(changes, 'firebase')
-		.filter(_.isObject)
+		.filter(isObject)
 		.map(config => firebase.initializeApp(config))
 		.filter();
 
@@ -20,15 +25,15 @@ export default changes => {
 	const authUser$ = auth$.flatMap(auth => Kefir.stream(e => auth.onAuthStateChanged(e.emit)));
 
 	// sign in user if they aren't
-	auth$.sampledBy(authUser$.filter(_.isNull))
+	auth$.sampledBy(authUser$.filter(isNull))
 		.onValue(auth => auth.signInAnonymously());
 
 	// init updates
-	event$(changes, 'show_votes').filter(_.isBoolean).onValue(show_votes => roomRef && roomRef.update({show_votes}));
-	event$(changes, 'topic').filter(_.isString).onValue(topic => roomRef && roomRef.update({topic}));
-	event$(changes, 'users').filter(_.isObject).onValue(users => roomRef && roomRef.update({users}));
-	event$(changes, 'votes').filter(_.isArray).onValue(votes => roomRef && roomRef.update({votes}));
-	event$(changes, 'vote').filter(_.isString).onValue(vote => userRef && userRef.update({vote}));
+	event$(changes, 'show_votes').filter(isBoolean).onValue(show_votes => roomRef && roomRef.update({show_votes}));
+	event$(changes, 'topic').filter(isString).onValue(topic => roomRef && roomRef.update({topic}));
+	event$(changes, 'users').filter(isObject).onValue(users => roomRef && roomRef.update({users}));
+	event$(changes, 'votes').filter(isArray).onValue(votes => roomRef && roomRef.update({votes}));
+	event$(changes, 'vote').filter(isString).onValue(vote => userRef && userRef.update({vote}));
 
 	// init room
 	const room$ = app$.map(app => app.database().ref())
@@ -40,7 +45,7 @@ export default changes => {
 	const user$ = Kefir.combine([room$, authUser$.filter().map(v => v.uid)], (room, userId) => room.child(`users/${userId}`));
 
 	// handle special user name case
-	Kefir.combine([user$.filter(), event$(changes, 'name').filter(_.isString)]).onValue(([user, name]) => user.update({name}));
+	Kefir.combine([user$.filter(), event$(changes, 'name').filter(isString)]).onValue(([user, name]) => user.update({name}));
 
 	return Kefir.combine([room$, user$])
 		.flatMap(([room, user]) => {
@@ -67,7 +72,7 @@ export default changes => {
 			return Kefir.constant(refs).flatten().flatMap(ref =>
 				Kefir.fromEvents(ref, 'value').map(
 					snap => ({ [`change:${snap.key}`]: snap.val() })
-				).skipDuplicates(_.isEqual)
+				).skipDuplicates(isEqual)
 			);
 		});
 };

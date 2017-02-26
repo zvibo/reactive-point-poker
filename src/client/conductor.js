@@ -1,4 +1,6 @@
-import _ from 'lodash';
+import isNull from 'lodash/isNull';
+import mapValues from 'lodash/mapValues';
+import set from 'lodash/set';
 import Kefir from 'kefir';
 import dom from './actors/dom';
 import firebase from './actors/firebase';
@@ -31,14 +33,14 @@ export default data => {
 
 	// set deck
 	changes.plug(event$(events, 'change:votes').filter().map(votes => ({votes})));
-	changes.plug(event$(events, 'change:votes').filter(_.isNull).map(() => ({votes: data.defaultVotes})));
+	changes.plug(event$(events, 'change:votes').filter(isNull).map(() => ({votes: data.defaultVotes})));
 
 	// reset action
 	changes.plug(
 		event$(events, 'change:users')
 		.sampledBy(event$(events, 'click:reset'))
 		.filter()
-		.map(users => _.mapValues(users, user => _.set(user, 'vote', '')))
+		.map(users => mapValues(users, user => set(user, 'vote', '')))
 		.map(users => ({ show_votes: false, topic: '', users }))
 	);
 

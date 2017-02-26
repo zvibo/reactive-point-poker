@@ -1,11 +1,11 @@
-import _ from 'lodash';
+import isString from 'lodash/isString';
 import w from 'window';
 import event$ from '../lib/event$';
 import Kefir from 'kefir';
 
 export default changes => {
 	event$(changes, 'room')
-		.filter(_.isString)
+		.filter(isString)
 		.filter(room => room !== w.location.pathname.substr(1))
 		.onValue(room => w.history.pushState(room, room ? room : 'lobby', `/${room}`));
 

@@ -1,4 +1,9 @@
-import _ from 'lodash';
+import countBy from 'lodash/countBy';
+import filter from 'lodash/filter';
+import map from 'lodash/map';
+import sortBy from 'lodash/sortBy';
+import sumBy from 'lodash/sumBy';
+import values from 'lodash/values';
 import View from '../lib/View';
 
 export default class ResultsView extends View {
@@ -7,14 +12,14 @@ export default class ResultsView extends View {
 			return stream
 				.map(data => data.users)
 				.filter()
-				.map(_.values)
-				.map(users => _.filter(users, user => user.vote !== undefined))
+				.map(values)
+				.map(users => filter(users, user => user.vote !== undefined))
 				.map(users => users.map(user => user.vote))
-				.map(votes => _.countBy(votes))
-				.map(counts => _.map(counts, (count, vote) => ({vote,count}) ))
+				.map(votes => countBy(votes))
+				.map(counts => map(counts, (count, vote) => ({vote,count}) ))
 				.map(votes => ({
-					votes: _.sortBy(votes, o => parseFloat(o.vote)),
-					total: _.sumBy(votes, 'count')
+					votes: sortBy(votes, o => parseFloat(o.vote)),
+					total: sumBy(votes, 'count')
 				}));
 		});
 	}

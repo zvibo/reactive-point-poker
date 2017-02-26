@@ -1,4 +1,6 @@
-import _ from 'lodash';
+import defaults from 'lodash/defaults';
+import isEmpty from 'lodash/isEmpty';
+import pick from 'lodash/pick';
 import Kefir from 'kefir';
 
 export default class View {
@@ -8,9 +10,9 @@ export default class View {
 		this.changes =
 			modifier(
 				changes.map(
-					v => _.pick(v, keys)
+					v => pick(v, keys)
 				).filter(
-					v => !_.isEmpty(v)
+					v => !isEmpty(v)
 				)
 			).onValue(
 				v => this._refresh(v)
@@ -43,7 +45,7 @@ export default class View {
 	}
 
 	_refresh(data) {
-		this._data = _.defaults(data, this._data);
+		this._data = defaults(data, this._data);
 		if(this._dC_refresh) this._dC_refresh();
 	}
 
