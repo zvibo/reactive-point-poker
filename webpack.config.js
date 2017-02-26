@@ -19,8 +19,8 @@ module.exports = {
 			}
 		]
 	},
-	// plugins: [
-	// 	new webpack.optimize.UglifyJsPlugin()
-	// ],
-	devtool: 'cheap-source-map'
+	plugins: [
+		new webpack.optimize.UglifyJsPlugin()
+	],
+	devtool: 'source-map'
 };
