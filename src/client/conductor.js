@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import w from 'window';
 import Kefir from 'kefir';
 import dom from './actors/dom';
 import firebase from './actors/firebase';
@@ -54,7 +53,6 @@ export default data => {
 
 	// initial state
 	changes.plug(Kefir.constant({
-		firebase: data.firebase,
-		room: w.location.pathname.substr(1)
+		firebase: data.firebase
 	}));
 };
